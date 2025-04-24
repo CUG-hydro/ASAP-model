@@ -3,15 +3,15 @@ The ASAP model is composed of the following modules:
   
 -module_driver.f90  Driver
 
--module_forcings.f90 Reads the forcings and interpolates to model grid in each procesor
+-module_forcings.f90 Reads the forcings and interpolates to model grid in each processor
 
 -module_rootdepth.f90 Contains the routines for vertical water fluxes and the soil moisture calculation
 
 -module_wtable.f90 Contains the hydrology routines (groundwater lateral flow and rivers/flooding)
 
--module_initial.f90 Ititialization routines for soil moisture
+-module_initial.f90 Initialization routines for soil moisture
 
--module_io.f90 read in and write out routines
+-module_io.f90 Read in and write out routines
 
 -module_nrtype.f90 Some parameter definitions
 
