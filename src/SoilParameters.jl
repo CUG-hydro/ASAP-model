@@ -12,13 +12,13 @@ const NSTYP = 13  # 土壤类型数量
 
 # 土壤参数结构体
 struct SoilType
-    slmsts::Float64   # 饱和含水量
-    soilcp::Float64   # 土壤容重
-    slbs::Float64     # 土壤b参数
-    slcons::Float64   # 饱和导水率
-    slpots::Float64   # 饱和基质势
-    slwilt::Float64   # 凋萎点含水量
-    klatfactor::Float64  # 侧向流因子
+    θ_sat::Float64      # 饱和含水量, θ_sat
+    θ_wilt::Float64     # 凋萎点含水量, θ_wilt
+    ψsat::Float64          # 饱和基质势, ψsat
+    Ksat::Float64      # 饱和导水率, Ksat
+    K_latfactor::Float64  # 侧向流因子, K_latfactor
+    ρb::Float64         # 土壤容重(bulk density), ρb
+    b::Float64          # 土壤b参数, b
 end
 
 # 土壤参数数据
@@ -45,13 +45,13 @@ function get_soil_params(soil_type::Int)
     end
     
     return SoilType(
-        SLMSTS[soil_type],
-        SOILCP[soil_type],
-        SLBS[soil_type],
-        SLCONS[soil_type],
-        SLPOTS[soil_type],
-        0.0,  # slwilt 将在初始化时计算
-        KLATFACTOR[soil_type]
+        SLMSTS[soil_type],      # θ_sat
+        0.0,                    # θ_wilt 将在初始化时计算
+        SLPOTS[soil_type],      # ψsat
+        SLCONS[soil_type],      # Ksat
+        KLATFACTOR[soil_type],  # K_latfactor
+        SOILCP[soil_type],      # ρb
+        SLBS[soil_type],        # b
     )
 end
 
@@ -83,17 +83,15 @@ end
 
 # 参数
 - `smoi::Float64`: 土壤含水量
-- `nsoil::Int`: 土壤类型索引
+- `θ_sat::Float64`: 饱和含水量
+- `Ksat::Float64`: 饱和导水率
+- `b::Float64`: 土壤b参数
 
 # 返回
 - `Float64`: 导水率
 """
-function khyd(smoi::Float64, nsoil::Int)
-    if nsoil < 1 || nsoil > NSTYP
-        error("土壤类型索引必须在 1-$NSTYP 范围内")
-    end
-    
-    return SLCONS[nsoil] * (smoi / SLMSTS[nsoil])^(2.0 * SLBS[nsoil] + 3.0)
+function khyd(smoi::Float64, θ_sat::Float64, Ksat::Float64, b::Float64)
+    return Ksat * (smoi / θ_sat)^(2.0 * b + 3.0)
 end
 
 end # module SoilParameters

@@ -80,7 +80,7 @@ function soilfluxes(i::Int, j::Int, nzg::Int, freedrain::Int, dtll::Float64,
     
     # 顶部边界条件：入渗 + 土壤蒸发
     soil_params = get_soil_params(soiltxt)
-    smoicp = soil_params.soilcp
+    smoicp = soil_params.ρb
     
     if smoi[nzg] <= smoicp
         pet_s_actual = 0.0
@@ -91,9 +91,9 @@ function soilfluxes(i::Int, j::Int, nzg::Int, freedrain::Int, dtll::Float64,
     vt3di[nzg+1] = (-precip + pet_s_actual) * 1.0e-3 - flood
     
     # 检查入渗能力
-    if -vt3di[nzg+1] > soil_params.slcons * dtll
-        runoff = -vt3di[nzg+1] - soil_params.slcons * dtll
-        vt3di[nzg+1] = -soil_params.slcons * dtll
+    if -vt3di[nzg+1] > soil_params.Ksat * dtll
+        runoff = -vt3di[nzg+1] - soil_params.Ksat * dtll
+        vt3di[nzg+1] = -soil_params.Ksat * dtll
     end
     
     # 确定地下水位位置
@@ -116,18 +116,18 @@ function soilfluxes(i::Int, j::Int, nzg::Int, freedrain::Int, dtll::Float64,
         # 获取土壤参数
         soil_params = get_soil_params(soiltxt)
         
-        hydcon = soil_params.slcons * max(min(exp((slz[k] + 1.5) / fdepth), 1.0), 0.1)
-        smoisat = soil_params.slmsts * max(min(exp((slz[k] + 1.5) / fdepth), 1.0), 0.1)
-        psisat = soil_params.slpots * min(max(exp(-(slz[k] + 1.5) / fdepth), 1.0), 10.0)
+        hydcon = soil_params.Ksat * max(min(exp((slz[k] + 1.5) / fdepth), 1.0), 0.1)
+        smoisat = soil_params.θ_sat * max(min(exp((slz[k] + 1.5) / fdepth), 1.0), 0.1)
+        psisat = soil_params.ψsat * min(max(exp(-(slz[k] + 1.5) / fdepth), 1.0), 10.0)
         
         wgpmid = min(wgpmid, smoisat)
         
         # 考虑冰冻因子
         icefac = icefactor[k] == 0 ? 1.0 : 0.0
         
-        kfmid[k] = icefac * hydcon * (wgpmid / smoisat)^(2.0 * soil_params.slbs + 3.0)
-        diffmid[k] = -icefac * (hydcon * psisat * soil_params.slbs / smoisat) * 
-                     (wgpmid / smoisat)^(soil_params.slbs + 2.0)
+        kfmid[k] = icefac * hydcon * (wgpmid / smoisat)^(2.0 * soil_params.b + 3.0)
+        diffmid[k] = -icefac * (hydcon * psisat * soil_params.b / smoisat) * 
+                     (wgpmid / smoisat)^(soil_params.b + 2.0)
     end
     
     # 计算三对角矩阵元素
@@ -196,10 +196,10 @@ function soilfluxes(i::Int, j::Int, nzg::Int, freedrain::Int, dtll::Float64,
     else
         # 重力排水边界
         soil_params = get_soil_params(soiltxt)
-        hydcon = soil_params.slcons * max(min(exp((slz[1] + 1.5) / fdepth), 1.0), 0.1)
-        smoisat = soil_params.slmsts * max(min(exp((slz[1] + 1.5) / fdepth), 1.0), 0.1)
+        hydcon = soil_params.Ksat * max(min(exp((slz[1] + 1.5) / fdepth), 1.0), 0.1)
+        smoisat = soil_params.θ_sat * max(min(exp((slz[1] + 1.5) / fdepth), 1.0), 0.1)
         
-        kfmid[1] = hydcon * (smoi[1] / smoisat)^(2.0 * soil_params.slbs + 3.0)
+        kfmid[1] = hydcon * (smoi[1] / smoisat)^(2.0 * soil_params.b + 3.0)
         
         aa[1] = 0.0
         cc[1] = diffmid[2] * vctr6[2]
@@ -262,7 +262,7 @@ function soilfluxes(i::Int, j::Int, nzg::Int, freedrain::Int, dtll::Float64,
     # 检查并修正土壤含水量边界
     for k in 1:nzg
         soil_params = get_soil_params(soiltxt)
-        smoisat = soil_params.slmsts * max(min(exp((vctr4[k] + 1.5) / fdepth), 1.0), 0.1)
+        smoisat = soil_params.θ_sat * max(min(exp((vctr4[k] + 1.5) / fdepth), 1.0), 0.1)
         
         if smoiold[k] > smoisat
             dsmoi = max((smoiold[k] - smoisat) * dz[k], 0.0)
@@ -290,7 +290,7 @@ function soilfluxes(i::Int, j::Int, nzg::Int, freedrain::Int, dtll::Float64,
     # 处理最上层的干燥限制
     k = nzg
     soil_params = get_soil_params(soiltxt)
-    smoicp = soil_params.soilcp * max(min(exp((vctr4[k] + 1.5) / fdepth), 1.0), 0.1)
+    smoicp = soil_params.ρb * max(min(exp((vctr4[k] + 1.5) / fdepth), 1.0), 0.1)
     
     et_s = pet_s
     if smoiold[k] < smoicp
@@ -314,7 +314,7 @@ function soilfluxes(i::Int, j::Int, nzg::Int, freedrain::Int, dtll::Float64,
     # 继续处理下层
     for k in (nzg-1):-1:1
         soil_params = get_soil_params(soiltxt)
-        smoicp = soil_params.soilcp * max(min(exp((vctr4[k] + 1.5) / fdepth), 1.0), 0.1)
+        smoicp = soil_params.ρb * max(min(exp((vctr4[k] + 1.5) / fdepth), 1.0), 0.1)
         
         if smoiold[k] < smoicp
             dsmoi = max((smoicp - smoiold[k]) * dz[k], 0.0)

@@ -1,15 +1,9 @@
+export updateshallowwtd, updatewtdqlat
+
+
 """
 地下水位更新模块
 计算浅层地下水位的变化
-"""
-module WaterTableDynamics
-
-using ..SoilParameters
-
-export updateshallowwtd, updatewtdqlat
-
-"""
-更新浅层地下水位
 
 # 参数
 - `i::Int`, `j::Int`: 网格坐标
@@ -55,13 +49,13 @@ function updateshallowwtd(i::Int, j::Int, nzg::Int, freedrain::Int, slz::Vector{
             
             # 检查上层是否接近饱和
             if kwtd > 1
-                smoisat = soil_params.slmsts * max(min(exp((vctr4[kwtd-1] + 1.5) / fdepth), 1.0), 0.1)
+                smoisat = soil_params.θ_sat * max(min(exp((vctr4[kwtd-1] + 1.5) / fdepth), 1.0), 0.1)
                 if wtd < slz[kwtd] + 0.01 && smoi[kwtd-1] < smoisat
                     flag = 1
                 end
             end
             
-            smoisat = soil_params.slmsts * max(min(exp((vctr4[kwtd] + 1.5) / fdepth), 1.0), 0.1)
+            smoisat = soil_params.θ_sat * max(min(exp((vctr4[kwtd] + 1.5) / fdepth), 1.0), 0.1)
             
             if smoi[kwtd] > smoieq[kwtd] && flag == 0
                 if smoi[kwtd] == smoisat  # 地下水位上升到上层
@@ -73,7 +67,7 @@ function updateshallowwtd(i::Int, j::Int, nzg::Int, freedrain::Int, slz::Vector{
                     if kwtd <= nzg
                         if smoi[kwtd] > smoieq[kwtd]
                             wtdold = wtd
-                            smoisat = soil_params.slmsts * max(min(exp((vctr4[kwtd] + 1.5) / fdepth), 1.0), 0.1)
+                            smoisat = soil_params.θ_sat * max(min(exp((vctr4[kwtd] + 1.5) / fdepth), 1.0), 0.1)
                             wtd = min((smoi[kwtd] * dz[kwtd] - smoieq[kwtd] * slz[iwtd] + smoisat * slz[kwtd]) /
                                      (smoisat - smoieq[kwtd]), slz[iwtd])
                             rech = rech + (wtdold - wtd) * (smoisat - smoieq[kwtd])
@@ -97,7 +91,7 @@ function updateshallowwtd(i::Int, j::Int, nzg::Int, freedrain::Int, slz::Vector{
                 # 调整到下层
                 if kwtd >= 1
                     wtdold = wtd
-                    smoisat = soil_params.slmsts * max(min(exp((vctr4[kwtd] + 1.5) / fdepth), 1.0), 0.1)
+                    smoisat = soil_params.θ_sat * max(min(exp((vctr4[kwtd] + 1.5) / fdepth), 1.0), 0.1)
                     
                     if smoi[kwtd] > smoieq[kwtd]
                         wtd = min((smoi[kwtd] * dz[kwtd] - smoieq[kwtd] * slz[iwtd] + smoisat * slz[kwtd]) /
@@ -123,6 +117,7 @@ function updateshallowwtd(i::Int, j::Int, nzg::Int, freedrain::Int, slz::Vector{
     
     return wtd, rech
 end
+
 
 """
 通过侧向流更新地下水位
@@ -174,7 +169,7 @@ function updatewtdqlat(nzg::Int, slz::Vector{Float64}, dz::Vector{Float64}, wtd:
         
         kwtd = iwtd - 1
         soil_params = get_soil_params(soiltxt[kwtd])
-        smoisat = soil_params.slmsts * max(min(exp((vctr4[kwtd] + 1.5) / fdepth), 1.0), 0.1)
+        smoisat = soil_params.θ_sat * max(min(exp((vctr4[kwtd] + 1.5) / fdepth), 1.0), 0.1)
         
         # 该层可容纳的最大水量
         maxwatup = dz[kwtd] * (smoisat - smoi[kwtd])
@@ -203,7 +198,7 @@ function updatewtdqlat(nzg::Int, slz::Vector{Float64}, dz::Vector{Float64}, wtd:
                 end
                 
                 soil_params = get_soil_params(soiltxt[k])
-                smoisat = soil_params.slmsts * max(min(exp((vctr4[k] + 1.5) / fdepth), 1.0), 0.1)
+                smoisat = soil_params.θ_sat * max(min(exp((vctr4[k] + 1.5) / fdepth), 1.0), 0.1)
                 maxwatup = dz[k] * (smoisat - smoi[k])
                 
                 if totwater <= maxwatup
@@ -241,7 +236,7 @@ function updatewtdqlat(nzg::Int, slz::Vector{Float64}, dz::Vector{Float64}, wtd:
         k1 = iwtd - 1
         for kwtd in k1:-1:1
             soil_params = get_soil_params(soiltxt[kwtd])
-            smoisat = soil_params.slmsts * max(min(exp((vctr4[kwtd] + 1.5) / fdepth), 1.0), 0.1)
+            smoisat = soil_params.θ_sat * max(min(exp((vctr4[kwtd] + 1.5) / fdepth), 1.0), 0.1)
             
             # 该层可提供的最大水量
             maxwatdw = dz[kwtd] * (smoi[kwtd] - smoieq[kwtd])
@@ -272,18 +267,14 @@ function updatewtdqlat(nzg::Int, slz::Vector{Float64}, dz::Vector{Float64}, wtd:
         
         if iwtd == 1 && totwater < 0.0
             soil_params = get_soil_params(soiltxt[1])
-            smoisat = soil_params.slmsts * max(min(exp((vctr4[1] + 1.5) / fdepth), 1.0), 0.1)
+            smoisat = soil_params.θ_sat * max(min(exp((vctr4[1] + 1.5) / fdepth), 1.0), 0.1)
             
             smoi[1] = smoi[1] + totwater / dz[1]
             qlatflux[1] = qlatflux[1] + totwater
             wtd = max((smoi[1] * dz[1] - smoieq[1] * slz[2] + smoisat * slz[1]) /
                      (smoisat - smoieq[1]), slz[1])
         end
-        
         qspring = 0.0
     end
-    
     return qspring, wtd, smoi, qlatflux
 end
-
-end # module WaterTableDynamics
