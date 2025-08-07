@@ -1,5 +1,10 @@
 # ASAP 模型 Julia 版本
 
+<!-- [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://CUG-hydro.github.io/ASAP-model/stable) -->
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://CUG-hydro.github.io/ASAP-model/dev)
+[![CI](https://github.com/CUG-hydro/ASAP-model/actions/workflows/CI.yml/badge.svg)](https://github.com/CUG-hydro/ASAP-model/actions/workflows/CI.yml)
+[![Codecov](https://codecov.io/gh/CUG-hydro/ASAP-model/branch/main/graph/badge.svg)](https://app.codecov.io/gh/CUG-hydro/ASAP-model/tree/main)
+
 这是 ASAP (Agricultural Systems Analysis and Prediction) 模型的 Julia 实现版本，从原始的 Fortran `module_rootdepth.f90` 翻译而来。
 
 ## 模块结构
@@ -43,34 +48,9 @@ Julia 版本将原始的单一 Fortran 模块分解为多个独立的、可测�
    - 整合所有子模块
    - 提供主要计算接口
 
-### 测试模块
-
-每个核心模块都有对应的测试文件：
-
-- `test_soil_parameters.jl`
-- `test_evapotranspiration.jl`
-- `test_interception.jl`
-- `test_soil_initialization.jl`
-
 ## 使用方法
 
-### 快速开始
-
 ```julia
-# 运行示例
-include("src/example_usage.jl")
-
-# 运行所有测试
-include("src/run_tests.jl")
-```
-
-### 基本使用
-
-```julia
-using .SoilParameters
-using .Evapotranspiration
-using .Interception
-
 # 获取土壤参数
 soil_params = get_soil_params(5)  # 第5种土壤类型
 
@@ -99,63 +79,3 @@ ppdrip, et_i, new_store = interception(0.01, 5.0, 3.0, 0.2, 0.5)
 - **同位素追踪**：包含氧18同位素的追踪计算
 - **灵活的土壤配置**：支持多种土壤层配置方案
 - **数值稳定性**：改进的数值算法确保计算稳定
-
-## 文件结构
-
-```
-src/
-├── SoilParameters.jl          # 土壤参数模块
-├── Evapotranspiration.jl      # 蒸散发计算模块
-├── Interception.jl            # 截留模块
-├── WaterExtraction.jl         # 水分提取模块
-├── SoilFluxes.jl             # 土壤水流模块
-├── WaterTableDynamics.jl      # 地下水位动态模块
-├── SoilInitialization.jl     # 土壤初始化模块
-├── RootDepth.jl              # 主模块
-├── test_*.jl                 # 测试文件
-├── run_tests.jl              # 测试运行脚本
-└── example_usage.jl          # 使用示例
-```
-
-## 开发指南
-
-### 添加新功能
-
-1. 在相应模块中添加新函数
-2. 添加详细的文档字符串
-3. 编写相应的测试
-4. 更新 export 列表
-
-### 运行测试
-
-```julia
-# 运行所有测试
-include("src/run_tests.jl")
-
-# 运行特定模块测试
-include("src/test_soil_parameters.jl")
-```
-
-### 性能优化
-
-- 使用类型注解提高性能
-- 避免全局变量
-- 使用 `@inbounds` 和 `@simd` 宏优化循环
-- 预分配数组避免内存分配
-
-## 依赖关系
-
-- Julia 1.6+
-- Test.jl (标准库)
-
-## 许可证
-
-本项目遵循与原始 ASAP 模型相同的许可证。
-
-## 贡献
-
-欢迎提交问题报告和功能请求。请确保新代码包含适当的测试和文档。
-
-## 联系信息
-
-如有疑问或建议，请联系项目维护者。
