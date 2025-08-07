@@ -1,6 +1,6 @@
 """
-根系深度主模块
-整合所有子模块，提供主要的根系深度计算功能
+ASAP模型主模块
+整合所有子模块，提供完整的水文模型功能
 """
 module ASAP
 
@@ -16,12 +16,14 @@ include("WaterTableDynamics.jl")
 include("SoilInitialization.jl")
 include("RootDepth.jl")
 
+# 导入新的水位模块
+include("wtable/WaterTable.jl")
+
 @reexport using .SoilParameters
 @reexport using .Evapotranspiration
 @reexport using .WaterExtraction
-
+@reexport using .WaterTable
 
 export rootdepth_main
-
 
 end # module ASAP

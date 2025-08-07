@@ -1,0 +1,124 @@
+using Test
+using ASAP.WaterTable
+
+@testset "WaterTable Constants" begin
+    @test π₄ ≈ 12.566370800000001
+    @test π2r ≈ 0.0174532925199
+    @test gravitational_acceleration == 9.81
+end
+
+@testset "Flow Direction Function" begin
+    # 测试流向计算
+    fd = [1 2 4; 8 16 32; 64 128 0]
+    
+    # 测试各个方向
+    @test flowdir(1, 3, 1, 3, fd, 1, 1) == (2, 1)  # 向东
+    @test flowdir(1, 3, 1, 3, fd, 1, 2) == (2, 1)  # 向东南
+    @test flowdir(1, 3, 1, 3, fd, 1, 3) == (1, 2)  # 向南
+    @test flowdir(1, 3, 1, 3, fd, 2, 1) == (1, 1)  # 向西南
+    @test flowdir(1, 3, 1, 3, fd, 2, 2) == (1, 2)  # 向西
+    @test flowdir(1, 3, 1, 3, fd, 2, 3) == (1, 3)  # 向西北
+    @test flowdir(1, 3, 1, 3, fd, 3, 1) == (3, 2)  # 向北
+    @test flowdir(1, 3, 1, 3, fd, 3, 2) == (4, 3)  # 向东北
+end
+
+@testset "Basic Water Table Calculations" begin
+    # 创建简单的测试网格
+    imax, jmax = 5, 5
+    nzg = 3
+    
+    # 土壤层设置
+    slz = [-0.1, -0.5, -1.0, -2.0]  # nzg+1 = 4 layers
+    dz = [0.4, 0.5, 1.0]  # nzg = 3 thickness
+    
+    # 创建测试数组
+    area = ones(imax, jmax) * 1000.0  # 1000 m²
+    soiltxt = ones(Int, 2, imax, jmax)  # 土壤类型1
+    wtd = fill(-1.5, imax, jmax)  # 水位深度
+    bottomflux = zeros(imax, jmax)
+    rech = zeros(imax, jmax)
+    qslat = zeros(imax, jmax)
+    fdepth = ones(imax, jmax) * 2.0
+    topo = zeros(imax, jmax)
+    landmask = ones(Int, imax, jmax)
+    smoi = fill(0.3, nzg, imax, jmax)
+    smoieq = fill(0.2, nzg, imax, jmax)
+    smoiwtd = fill(0.25, imax, jmax)
+    qsprings = zeros(imax, jmax)
+    
+    Δt = 3600.0  # 1小时
+    
+    # 测试wtable!函数运行不出错
+    @test_nowarn wtable!(
+        imax, jmax, 1, imax, 1, jmax, nzg,
+        slz, dz, area, soiltxt, wtd, bottomflux,
+        rech, qslat, fdepth, topo, landmask, Δt,
+        smoi, smoieq, smoiwtd, qsprings
+    )
+    
+    # 检查结果的基本属性
+    @test all(isfinite.(wtd))
+    @test all(isfinite.(qsprings))
+    @test all(isfinite.(rech))
+end
+
+@testset "Lateral Flow Calculation" begin
+    # 简单的3x3网格测试侧向流
+    imax, jmax = 3, 3
+    
+    wtd = [-1.0 -1.2 -1.4;
+           -1.1 -1.3 -1.5;
+           -1.2 -1.4 -1.6]
+    
+    qlat = zeros(size(wtd))
+    fdepth = ones(size(wtd)) * 2.0
+    topo = zeros(size(wtd))
+    landmask = ones(Int, size(wtd))
+    area = ones(size(wtd)) * 1000.0
+    κlat = ones(size(wtd)) * 1e-5
+    
+    Δt = 3600.0
+    
+    @test_nowarn lateral_flow!(
+        imax, jmax, 1, imax, 1, jmax,
+        wtd, qlat, fdepth, topo, landmask, Δt, area, κlat
+    )
+    
+    # 检查侧向流的基本性质
+    @test all(isfinite.(qlat))
+    # 中心点应该有流出(因为水位梯度)
+    @test qlat[2, 2] != 0.0
+end
+
+@testset "River-Groundwater Interaction" begin
+    # 测试河流-地下水交换
+    imax, jmax = 3, 3
+    nzg = 2
+    
+    slz = [-0.1, -1.0, -2.0]
+    soiltxt = ones(Int, 2, imax, jmax)
+    landmask = ones(Int, imax, jmax)
+    wtd = fill(-0.5, imax, jmax)  # 浅水位
+    maxdepth = ones(imax, jmax) * 2.0
+    riverdepth = ones(imax, jmax) * 1.0
+    width = ones(imax, jmax) * 10.0
+    length = ones(imax, jmax) * 100.0
+    area = ones(imax, jmax) * 1000.0
+    fdepth = ones(imax, jmax) * 3.0
+    qrf = zeros(imax, jmax)
+    
+    Δt = 3600.0
+    
+    @test_nowarn gw2river!(
+        imax, jmax, 1, imax, 1, jmax, nzg,
+        slz, Δt, soiltxt, landmask, wtd, maxdepth,
+        riverdepth, width, length, area, fdepth, qrf
+    )
+    
+    # 检查结果
+    @test all(isfinite.(qrf))
+    # 由于水位高于河床，应该有向河流的排水
+    @test any(qrf .> 0.0)
+end
+
+println("✓ 水位模块测试完成")
