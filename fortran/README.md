@@ -19,6 +19,8 @@ The ASAP model is composed of the following modules:
 
 -interp_lib.f90 Interpolation routines
 
+## Forcing
+
 The input files and parameters in the model code in the example are set up for South America. In
 global simulations, the code runs for each continent separately.
 
@@ -61,7 +63,3 @@ FAO Global Harmonized Soil Data Base (http://webarchive.iiasa.ac.at/Research/LUC
 -Topography
 
 Merit DEM (Yamazaki et al 2017) (http://hydro.iis.u-tokyo.ac.jp/~yamadai/MERIT_DEM/)
-
- 
-
- 
