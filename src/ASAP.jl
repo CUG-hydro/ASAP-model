@@ -19,7 +19,6 @@ include("RootDepth.jl")
 @reexport using .SoilParameters
 @reexport using .Evapotranspiration
 @reexport using .WaterExtraction
-@reexport using .SoilFluxes
 
 
 export rootdepth_main
