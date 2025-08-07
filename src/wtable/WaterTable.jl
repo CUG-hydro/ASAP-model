@@ -6,6 +6,7 @@ const π₄ = 3.1415927 * 4.0
 const π2r = 0.0174532925199  # π/180 度转弧度
 const g0 = 9.81  # 重力加速度 (m/s²)
 
+using ASAP
 
 # 导入子模块
 include("helper.jl")

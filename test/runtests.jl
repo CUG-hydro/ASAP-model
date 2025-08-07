@@ -6,4 +6,5 @@ include("test_soil_initialization.jl")
 include("test_evapotranspiration.jl")
 include("test_interception.jl")
 
+include("wtable/runtests.jl")
 # include("test_soil_parameters.jl")

@@ -5,17 +5,9 @@ ASAP 模型泛型类型参数示例
 
 println("🧮 ASAP 模型泛型类型参数示例")
 println("=" * 50)
-
-# 导入主模块
-push!(LOAD_PATH, ".")
-include("ASAP.jl")
-using .ASAP
+using ASAP
 
 # 导入初始化模块
-include("SoilInitialization.jl")
-include("SoilParameters.jl")
-using .SoilInitialization
-using .SoilParameters
 
 println("\n📊 演示不同数值精度类型的使用")
 println("-" * 40)
@@ -36,8 +28,6 @@ println("网格: $(ie)×$(je), 土壤层数: $nzg")
 slz_f64, dz_f64 = initializesoildepth(nzg)
 fieldcp_f64, _ = init_soil_param(nzg)
 
-println("\n1️⃣  使用 Float64 类型 (高精度)")
-println("-" * 25)
 
 # Float64 类型数据
 slz_64 = Vector{Float64}(slz_f64)

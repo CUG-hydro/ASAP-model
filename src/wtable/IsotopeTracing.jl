@@ -33,7 +33,7 @@ function lateral_isotope!(
         for i in max(is, 1):min(ie, imax)
             nsoil = soiltxt[1, i, j]
             soil_params = get_soil_params(nsoil)
-            κlat[i, j] = soil_params.K_sat * soil_params.K_latfactor
+            κlat[i, j] = soil_params.Ksat * soil_params.K_latfactor
 
             # 确定水位所在层的同位素浓度
             k = 1
@@ -214,16 +214,16 @@ function updatedeepwtable!(
                     soil_params = get_soil_params(nsoil)
 
                     wgpmid = 0.5 * (smoiwtd[i, j] + soil_params.θ_sat)
-                    kfup = soil_params.K_sat *
+                    kfup = soil_params.Ksat *
                            (wgpmid / soil_params.θ_sat)^(2.0 * soil_params.b + 3.0)
 
                     # 计算湿度势
-                    vt3dbdw = soil_params.ψ *
+                    vt3dbdw = soil_params.ψsat *
                               (soil_params.θ_sat / smoiwtd[i, j])^soil_params.b
 
                     # 计算通量(=补给)
                     deeprech[i, j] = Δt * kfup *
-                                     ((soil_params.ψ - vt3dbdw) / (slz[1] - wtd[i, j]) - 1.0)
+                                     ((soil_params.ψsat - vt3dbdw) / (slz[1] - wtd[i, j]) - 1.0)
 
                     # 更新水位处土壤湿度
                     newwgp = smoiwtd[i, j] + (deeprech[i, j] - bottomflux[i, j]) / (slz[1] - wtd[i, j])
@@ -325,7 +325,7 @@ function updatewtd_simple(
             else
                 # 深部水位下降
                 wgpmid = soil_params.θ_sat *
-                         (soil_params.ψ / (soil_params.ψ - (slz[1] - wtd)))^(1.0 / soil_params.b)
+                         (soil_params.ψsat / (soil_params.ψsat - (slz[1] - wtd)))^(1.0 / soil_params.b)
                 wgpmid = max(wgpmid, soil_params.ρb)
 
                 syielddw = soil_params.θ_sat - wgpmid

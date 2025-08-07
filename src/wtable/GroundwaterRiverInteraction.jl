@@ -44,7 +44,7 @@ function gw2river!(
 
             if wtd[i, j] > riversurface
                 # 地下水位高于河流水面，向河流排水
-                hydcon = soil_params.K_sat * max(min(exp((-maxdepth[i, j] + 1.5) / fdepth[i, j]), 1.0), 0.1)
+                hydcon = soil_params.Ksat * max(min(exp((-maxdepth[i, j] + 1.5) / fdepth[i, j]), 1.0), 0.1)
                 rcond = width[i, j] * length[i, j] * hydcon
                 qrf[i, j] = rcond * (wtd[i, j] - riversurface) * (Δt / area[i, j])
 
@@ -53,7 +53,7 @@ function gw2river!(
 
             elseif wtd[i, j] > -maxdepth[i, j]
                 # 水位与河流连接但低于河流水面
-                hydcon = soil_params.K_sat * max(min(exp((-maxdepth[i, j] + 1.5) / fdepth[i, j]), 1.0), 0.1)
+                hydcon = soil_params.Ksat * max(min(exp((-maxdepth[i, j] + 1.5) / fdepth[i, j]), 1.0), 0.1)
                 rcond = width[i, j] * length[i, j] * hydcon
 
                 soilwatercap = -rcond * (wtd[i, j] - riversurface) * (Δt / area[i, j])
@@ -62,7 +62,7 @@ function gw2river!(
                             min(width[i, j] * length[i, j] / area[i, j], 1.0)
             else
                 # 水位在河床以下，断开连接，仅渗透
-                qrf[i, j] = -max(min(soil_params.K_sat * Δt, rdepth), 0.0) *
+                qrf[i, j] = -max(min(soil_params.Ksat * Δt, rdepth), 0.0) *
                             min(width[i, j] * length[i, j] / area[i, j], 1.0)
             end
         end

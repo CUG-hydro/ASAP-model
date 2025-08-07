@@ -6,16 +6,9 @@ ASAP 模型完整使用示例
 println("ASAP 模型 Julia 完整版本使用示例")
 println("=" * 50)
 
-# 导入主模块
-push!(LOAD_PATH, ".")
-include("ASAP.jl")
-using .ASAP
+using ASAP
 
 # 导入所需的子模块用于初始化
-include("SoilInitialization.jl")
-include("SoilParameters.jl")
-using .SoilInitialization
-using .SoilParameters
 
 # 1. 设置模型网格
 println("\n1. 设置模型参数")
