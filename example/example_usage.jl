@@ -23,7 +23,7 @@ println("  土壤b参数: $(soil_params.slbs)")
 
 # 计算导水率
 smoi = 0.3  # 当前含水量
-k = khyd(smoi, soil_type)
+k = cal_K(smoi, soil_type)
 println("  当前导水率: $k")
 
 # 2. 土壤层初始化示例

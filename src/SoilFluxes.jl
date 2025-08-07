@@ -104,23 +104,24 @@ function soilfluxes(
 
     # 计算中间层的导水率和扩散率
     for k in max(iwtd - 1, 2):nzg
-        wgpmid = θ[k] + (θ[k] - θ[k-1]) * (slz[k] - vctr4[k]) * vctr6[k]
+        θmid = θ[k] + (θ[k] - θ[k-1]) * (slz[k] - vctr4[k]) * vctr6[k]
 
         # 获取土壤参数
         soil_params = get_soil_params(soiltxt)
+        (; Ksat, θ_sat, ψsat, b) = soil_params
 
-        hydcon = soil_params.Ksat * max(min(exp((slz[k] + 1.5) / fdepth), 1.0), 0.1)
-        smoisat = soil_params.θ_sat * max(min(exp((slz[k] + 1.5) / fdepth), 1.0), 0.1)
-        psisat = soil_params.ψsat * min(max(exp(-(slz[k] + 1.5) / fdepth), 1.0), 10.0)
+        _Ksat = soil_params.Ksat * max(min(exp((slz[k] + 1.5) / fdepth), 1.0), 0.1)
+        _θsat = soil_params.θ_sat * max(min(exp((slz[k] + 1.5) / fdepth), 1.0), 0.1)
+        _ψsat = soil_params.ψsat * min(max(exp(-(slz[k] + 1.5) / fdepth), 1.0), 10.0)
 
-        wgpmid = min(wgpmid, smoisat)
+        θmid = min(θmid, _θsat)
 
         # 考虑冰冻因子
-        icefac = icefactor[k] == 0 ? 1.0 : 0.0
+        f_ice = icefactor[k] == 0 ? 1.0 : 0.0
 
-        kfmid[k] = icefac * hydcon * (wgpmid / smoisat)^(2.0 * soil_params.b + 3.0)
-        diffmid[k] = -icefac * (hydcon * psisat * soil_params.b / smoisat) *
-                     (wgpmid / smoisat)^(soil_params.b + 2.0)
+        kfmid[k] = f_ice * _Ksat * (θmid / _θsat)^(2.0 * soil_params.b + 3.0)
+        diffmid[k] = -f_ice * (_Ksat * _ψsat * soil_params.b / _θsat) *
+                     (θmid / _θsat)^(soil_params.b + 2.0)
     end
 
     # 计算三对角矩阵元素
@@ -131,7 +132,7 @@ function soilfluxes(
 
     for k in max(iwtd, 3):nzg
         aa[k] = diffmid[k] * vctr6[k]
-        cc[k] = diffmid[k+1] * vctr6[k+1]
+        cc[k] = diffmid[k+1] * vctr6[k+1] # TODO: bug here, 数组越界
         bb[k] = -(aa[k] + cc[k] + dz[k] / dtll)
         rr[k] = -θ[k] * dz[k] / dtll - kfmid[k+1] + kfmid[k] + transp[k] / dtll
     end

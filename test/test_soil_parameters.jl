@@ -27,11 +27,11 @@ end
 @testset "导水率计算" begin
     smoi = 0.3
     nsoil = 1
-    k = khyd(smoi, nsoil)
+    k = cal_K(smoi, nsoil)
     @test k > 0.0
     @test k ≈ SLCONS[nsoil] * (smoi / SLMSTS[nsoil])^(2.0 * SLBS[nsoil] + 3.0)
 
     # 测试边界条件
-    @test_throws BoundsError khyd(0.3, 0)
-    @test_throws BoundsError khyd(0.3, 14)
+    @test_throws BoundsError cal_K(0.3, 0)
+    @test_throws BoundsError cal_K(0.3, 14)
 end
