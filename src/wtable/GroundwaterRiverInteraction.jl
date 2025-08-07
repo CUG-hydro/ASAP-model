@@ -1,6 +1,5 @@
 # 河流-地下水相互作用模块
 
-# using ..Constants: gravitational_acceleration
 # using ..SoilParameters: get_soil_params
 export gw2river!, rivers_kw_flood!, rivers_dw_flood!, flooding!, moveqrf!
 
@@ -20,11 +19,11 @@ export gw2river!, rivers_kw_flood!, rivers_dw_flood!, flooding!, moveqrf!
 """
 function gw2river!(
     imax::Int, jmax::Int, is::Int, ie::Int, js::Int, je::Int, nzg::Int,
-    slz::Vector{Float64}, Δt::Float64, soiltxt::Array{Int,3},
-    landmask::Matrix{Int}, wtd::Matrix{Float64}, maxdepth::Matrix{Float64},
-    riverdepth::Matrix{Float64}, width::Matrix{Float64}, length::Matrix{Float64},
-    area::Matrix{Float64}, fdepth::Matrix{Float64}, qrf::Matrix{Float64}
-)
+    slz::V, Δt::T, soiltxt::Array{Int,3},
+    landmask::Matrix{Int}, wtd::M, maxdepth::M,
+    riverdepth::M, width::M, length::M,
+    area::M, fdepth::M, qrf::M
+) where {T<:AbstractFloat,V<:Vector{T},M<:Matrix{T}}
     qrf .= 0.0
 
     for j in (js+1):(je-1)
@@ -79,14 +78,14 @@ end
 """
 function rivers_kw_flood!(
     imax::Int, jmax::Int, is::Int, ie::Int, js::Int, je::Int,
-    Δt::Float64, dtlr::Float64, fd::Matrix{Int}, bfd::Matrix{Int},
-    qnew::Matrix{Float64}, qs::Matrix{Float64}, qrf::Matrix{Float64},
-    delsfcwat::Matrix{Float64}, slope::Matrix{Float64}, depth::Matrix{Float64},
-    width::Matrix{Float64}, length::Matrix{Float64}, maxdepth::Matrix{Float64},
-    area::Matrix{Float64}, riverarea::Matrix{Float64}, floodarea::Matrix{Float64},
-    riverchannel::Matrix{Float64}, qmean::Matrix{Float64}, floodheight::Matrix{Float64},
-    topo::Matrix{Float64}
-)
+    Δt::T, dtlr::T, fd::Matrix{Int}, bfd::Matrix{Int},
+    qnew::M, qs::M, qrf::M,
+    delsfcwat::M, slope::M, depth::M,
+    width::M, length::M, maxdepth::M,
+    area::M, riverarea::M, floodarea::M,
+    riverchannel::M, qmean::M, floodheight::M,
+    topo::M
+) where {T<:AbstractFloat,M<:Matrix{T}}
     # 计算外部输入流量
     qext = zeros(size(qnew))
 
@@ -107,7 +106,7 @@ function rivers_kw_flood!(
     for j in js:je
         for i in is:ie
             if fd[i, j] > 0
-                i1, j1 = flowdir(is, ie, js, je, fd, i, j)
+                i1, j1 = flowdir(fd, i, j)
                 if i1 > is && i1 < ie && j1 > js && j1 < je
                     qin[i1, j1] += q[i, j]
                 end
@@ -156,13 +155,13 @@ function rivers_kw_flood!(
 
                     if floodheight[i, j] > 0.05
                         # 计算瞬时坡度
-                        i1, j1 = flowdir(is, ie, js, je, fd, i, j)
+                        i1, j1 = flowdir(fd, i, j)
                         waterelevij = topo[i, j] - maxdepth[i, j] + depth[i, j]
                         waterelevi1j1 = topo[i1, j1] - maxdepth[i1, j1] + max(depth[i1, j1], 0.0)
                         slopefor = (waterelevij - waterelevi1j1) / (0.5 * (length[i, j] + length[i1, j1]))
 
                         if bfd[i, j] > 0
-                            i2, j2 = flowdir(is, ie, js, je, bfd, i, j)
+                            i2, j2 = flowdir(bfd, i, j)
                             waterelevi2j2 = topo[i2, j2] - maxdepth[i2, j2] + max(depth[i2, j2], 0.0)
                             slopeback = (waterelevi2j2 - waterelevij) / (0.5 * (length[i2, j2] + length[i, j]))
                             slopeinst = 0.5 * (slopefor + slopeback)
@@ -206,14 +205,14 @@ end
 使用扩散波方程进行河流洪水路由计算
 """
 function rivers_dw_flood!(
-    imax::Int, js::Int, je::Int, Δt::Float64, dtlr::Float64,
-    fd::Matrix{Int}, bfd::Matrix{Int}, qnew::Matrix{Float64},
-    qs::Matrix{Float64}, qrf::Matrix{Float64}, delsfcwat::Matrix{Float64},
-    slope::Matrix{Float64}, depth::Matrix{Float64}, width::Matrix{Float64},
-    length::Matrix{Float64}, maxdepth::Matrix{Float64}, area::Matrix{Float64},
-    riverarea::Matrix{Float64}, floodarea::Matrix{Float64}, riverchannel::Matrix{Float64},
-    qmean::Matrix{Float64}, floodheight::Matrix{Float64}, topo::Matrix{Float64}
-)
+    imax::Int, js::Int, je::Int, Δt::T, dtlr::T,
+    fd::Matrix{Int}, bfd::Matrix{Int}, qnew::M,
+    qs::M, qrf::M, delsfcwat::M,
+    slope::M, depth::M, width::M,
+    length::M, maxdepth::M, area::M,
+    riverarea::M, floodarea::M, riverchannel::M,
+    qmean::M, floodheight::M, topo::M
+) where {T<:AbstractFloat,M<:Matrix{T}}
     # 计算外部输入流量
     qext = zeros(size(qnew))
 
@@ -234,7 +233,7 @@ function rivers_dw_flood!(
     for j in js:je
         for i in 1:imax
             if fd[i, j] > 0
-                i1, j1 = flowdir(1, imax, js, je, fd, i, j)
+                i1, j1 = flowdir(fd, i, j)
                 if i1 > 1 && i1 < imax && j1 > js && j1 < je
                     qin[i1, j1] += q[i, j]
                 end
@@ -271,7 +270,7 @@ function rivers_dw_flood!(
     for j in (js+1):(je-1)
         for i in 2:(imax-1)
             if fd[i, j] > 0
-                i1, j1 = flowdir(1, imax, js, je, fd, i, j)
+                i1, j1 = flowdir(fd, i, j)
 
                 if floodheight[i, j] > 0.05 || depth[i1, j1] > maxdepth[i1, j1] + 0.05
                     # 洪水条件下使用扩散波
@@ -286,7 +285,7 @@ function rivers_dw_flood!(
                     slopefor = (waterelevi1j1 - waterelevij) / (0.5 * (length[i, j] + length[i1, j1]))
 
                     if bfd[i, j] > 0
-                        i2, j2 = flowdir(1, imax, js, je, bfd, i, j)
+                        i2, j2 = flowdir(bfd, i, j)
                         waterelevi2j2 = topo[i2, j2] - maxdepth[i2, j2] + max(depth[i2, j2], 0.0)
                         slopeback = (waterelevij - waterelevi2j2) / (0.5 * (length[i2, j2] + length[i, j]))
                         slopeinst = 0.5 * (slopefor + slopeback)
@@ -295,8 +294,8 @@ function rivers_dw_flood!(
                     end
 
                     # 扩散波方程
-                    qnew[i, j] = (q[i, j] - gravitational_acceleration * depth[i, j] * dtlr * slopeinst) /
-                                 (1.0 + gravitational_acceleration * dtlr * 0.03^2 * q[i, j] /
+                    qnew[i, j] = (q[i, j] - g0 * depth[i, j] * dtlr * slopeinst) /
+                                 (1.0 + g0 * dtlr * 0.03^2 * q[i, j] /
                                         (aa^(4.0 / 3.0) * depth[i, j]))
 
                     if width[i, j] == 0.0
@@ -331,11 +330,11 @@ end
 计算洪泛区的水位扩散
 """
 function flooding!(
-    imax::Int, jmax::Int, is::Int, ie::Int, js::Int, je::Int, Δt::Float64,
-    fd::Matrix{Int}, bfd::Matrix{Int}, topo::Matrix{Float64}, area::Matrix{Float64},
-    riverwidth::Matrix{Float64}, riverlength::Matrix{Float64}, riverdepth::Matrix{Float64},
-    floodheight::Matrix{Float64}, delsfcwat::Matrix{Float64}
-)
+    imax::Int, jmax::Int, is::Int, ie::Int, js::Int, je::Int, Δt::T,
+    fd::Matrix{Int}, bfd::Matrix{Int}, topo::M, area::M,
+    riverwidth::M, riverlength::M, riverdepth::M,
+    floodheight::M, delsfcwat::M
+) where {T<:AbstractFloat,M<:Matrix{T}}
     ntsplit = 1  # 时间分割数
     dflood = zeros(size(floodheight))
 
@@ -373,7 +372,7 @@ function flooding!(
 
                     # 向最低邻居漫流
                     if dhmax > 0.0
-                        i1, j1 = flowdir(is, ie, js, je, fd, i, j)
+                        i1, j1 = flowdir(fd, i, j)
 
                         dtotal = floodheight[i, j] + floodheight[ilow, jlow]
                         dij = max(floodheight[i, j] - max(0.5 * (topo[ilow, jlow] - topo[i, j] + dtotal), 0.0), 0.0)
@@ -410,15 +409,15 @@ end
 """
 function moveqrf!(
     imax::Int, js::Int, je::Int, fd::Matrix{Int},
-    qrf::Matrix{Float64}, area::Matrix{Float64}, width::Matrix{Float64}
-)
+    qrf::M, area::M, width::M
+) where {T<:AbstractFloat,M<:Matrix{T}}
     qrfextra = zeros(size(qrf))
 
     for j in (js+1):(je-1)
         for i in 2:(imax-1)
             if fd[i, j] > 0
                 if width[i, j] < 1.0
-                    iout, jout = flowdir(1, imax, js, je, fd, i, j)
+                    iout, jout = flowdir(fd, i, j)
                     qrfextra[iout, jout] += qrf[i, j] * area[i, j] / area[iout, jout]
                     qrf[i, j] = 0.0
                 end
@@ -432,54 +431,13 @@ function moveqrf!(
     return nothing
 end
 
-"""
-    flowdir(流向参数...)
-
-根据流向编码确定下游网格位置
-
-流向编码：
-- 1: 东 (→)
-- 2: 东南 (↘)
-- 4: 南 (↓)
-- 8: 西南 (↙)
-- 16: 西 (←)
-- 32: 西北 (↖)
-- 64: 北 (↑)
-- 128: 东北 (↗)
-"""
-function flowdir(is::Int, ie::Int, js::Int, je::Int, fd::Matrix{Int}, ii::Int, jj::Int)
-    # 确定j方向
-    j = if fd[ii, jj] in [2, 4, 8]
-        jj - 1
-    elseif fd[ii, jj] in [1, 16]
-        jj
-    elseif fd[ii, jj] in [32, 64, 128]
-        jj + 1
-    else
-        0
-    end
-
-    # 确定i方向
-    i = if fd[ii, jj] in [128, 1, 2]
-        ii + 1
-    elseif fd[ii, jj] in [4, 64]
-        ii
-    elseif fd[ii, jj] in [8, 16, 32]
-        ii - 1
-    else
-        0
-    end
-
-    return i, j
-end
-
 
 """
     apply_specific_diversions(特定分流应用...)
 
 应用原始代码中硬编码的特定河流分流
 """
-function apply_specific_diversions(i::Int, j::Int, q::Matrix{Float64}, dsnew::Float64)
+function apply_specific_diversions(i::Int, j::Int, q::M, dsnew::T) where {T<:AbstractFloat,M<:Matrix{T}}
     # Taquari河流分流
     (i == 4498 && j == 4535) && (dsnew += q[4499, 4534] / 4.0)
     (i == 4498 && j == 4534) && (dsnew -= q[4499, 4534] / 4.0)
