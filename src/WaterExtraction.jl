@@ -8,6 +8,11 @@ using ..SoilParameters
 
 export extraction
 
+
+const POTLEAF = -153.0  # 叶片水势 (m)
+const POTWILT = -153.0  # 凋萎点水势 (m)  
+const POTFC = -3.366    # 田间持水量水势 (m)
+
 """
 从土壤层中提取水分用于蒸腾
 
@@ -16,7 +21,7 @@ export extraction
 - `nzg::Int`: 土壤层数
 - `slz::Vector{Float64}`: 土壤层深度 (m) [nzg+1]
 - `dz::Vector{Float64}`: 土壤层厚度 (m) [nzg]
-- `deltat::Float64`: 时间步长 (s)
+- `Δt::Float64`: 时间步长 (s)
 - `soiltxt::Int`: 土壤类型
 - `wtd::Float64`: 地下水位深度 (m)
 - `smoi::Vector{Float64}`: 土壤含水量 [nzg]
@@ -38,16 +43,14 @@ export extraction
 - `Tuple`: (pet_s, pet_c, watdef, dsmoi, dsmoideep)
 """
 function extraction(i::Int, j::Int, nzg::Int, slz::Vector{Float64}, dz::Vector{Float64}, 
-                   deltat::Float64, soiltxt::Int, wtd::Float64, smoi::Vector{Float64}, 
-                   smoiwtd::Float64, delta::Float64, gamma::Float64, lambda::Float64, 
+                   Δt::Float64, soiltxt::Int, wtd::Float64, smoi::Vector{Float64}, 
+                   smoiwtd::Float64, δ::Float64, γ::Float64, λ::Float64, 
                    lai::Float64, ra_a::Float64, ra_c::Float64, rs_c_factor::Float64,
                    R_a::Float64, R_s::Float64, petfactor_s::Float64, petfactor_c::Float64,
                    inactivedays::Vector{Int}, maxinactivedays::Int, fieldcp::Matrix{Float64},
                    hhveg::Float64, fdepth::Float64, icefac::Vector{Int8})
     
-    const POTLEAF = -153.0  # 叶片水势 (m)
-    const POTWILT = -153.0  # 凋萎点水势 (m)  
-    const POTFC = -3.366    # 田间持水量水势 (m)
+    
     
     hveg = 2.0 * hhveg / 3.0
     
@@ -186,8 +189,8 @@ function extraction(i::Int, j::Int, nzg::Int, slz::Vector{Float64}, dz::Vector{F
     soil_params = get_soil_params(soiltxt)
     rs_s = 33.5 + 3.5 * (soil_params.slmsts / smoi[nzg])^2.38
     
-    R_c = (delta + gamma) * ra_c + gamma * rs_c
-    R_s_final = R_s + gamma * rs_s
+    R_c = (δ + γ) * ra_c + γ * rs_c
+    R_s_final = R_s + γ * rs_s
     
     C_c = 1.0 / (1.0 + R_a * R_c / (R_s_final * (R_c + R_a)))
     C_s = 1.0 / (1.0 + R_a * R_s_final / (R_c * (R_s_final + R_a)))
@@ -197,11 +200,11 @@ function extraction(i::Int, j::Int, nzg::Int, slz::Vector{Float64}, dz::Vector{F
     end
     
     # 计算蒸腾和土壤蒸发
-    pet_c = C_c * petfactor_c / (delta + gamma * (1.0 + rs_c / (ra_a + ra_c)))
-    pet_c = max(deltat * pet_c / lambda, 0.0)
+    pet_c = C_c * petfactor_c / (δ + γ * (1.0 + rs_c / (ra_a + ra_c)))
+    pet_c = max(Δt * pet_c / λ, 0.0)
     
-    pet_s = C_s * petfactor_s / (delta + gamma * (1.0 + rs_s / (ra_a + ra_c)))
-    pet_s = max(deltat * pet_s / lambda, 0.0)
+    pet_s = C_s * petfactor_s / (δ + γ * (1.0 + rs_s / (ra_a + ra_c)))
+    pet_s = max(Δt * pet_s / λ, 0.0)
     
     transpwater = pet_c * 1.0e-3  # 转换为m
     

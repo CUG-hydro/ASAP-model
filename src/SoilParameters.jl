@@ -65,14 +65,14 @@ end
 - `Array{Float64,2}`: 田间持水量数组 (nzg × nstyp)
 """
 function init_soil_param(nzg::Int)
-    const POTWILT = -153.0  # 凋萎点基质势
+    POTWILT_LOCAL = -153.0  # 凋萎点基质势
     
     fieldcp = zeros(Float64, nzg, NSTYP)
     slwilt = zeros(Float64, NSTYP)
     
     # 计算各土壤类型的凋萎点含水量
     for nsoil in 1:NSTYP
-        slwilt[nsoil] = SLMSTS[nsoil] * (SLPOTS[nsoil] / POTWILT)^(1.0 / SLBS[nsoil])
+        slwilt[nsoil] = SLMSTS[nsoil] * (SLPOTS[nsoil] / POTWILT_LOCAL)^(1.0 / SLBS[nsoil])
     end
     
     return fieldcp, slwilt

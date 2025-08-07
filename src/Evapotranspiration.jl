@@ -25,7 +25,6 @@ const ZDIS = [0.1, 0.1, 0.1, 15.0, 20.0, 15.0, 20.0, 0.2, 1.0, 0.1, 0.5, 0.1, 1.
 Priestley-Taylor 法计算潜在蒸散发
 
 # 参数
-- `i::Int`, `j::Int`: 网格坐标
 - `tempk::Float64`: 温度 (K)
 - `rad::Float64`: 净辐射 (W/m²)
 - `presshp::Float64`: 大气压力 (hPa)
@@ -33,20 +32,20 @@ Priestley-Taylor 法计算潜在蒸散发
 # 返回
 - `Float64`: 潜在蒸散发 (mm)
 """
-function potevap_priestly_taylor(i::Int, j::Int, tempk::Float64, rad::Float64, presshp::Float64)
-    const CP = 1013.0e-6  # 比热容
+function potevap_priestly_taylor(tempk::Float64, rad::Float64, presshp::Float64)
+    CP_LOCAL = 1013.0e-6  # 比热容
 
     tempc = tempk - 273.15  # 转换为摄氏度
     presskp = presshp * 0.1  # 转换为 kPa
     rad_mj = rad * 24.0 * 3600.0 * 1.0e-6  # 转换为 MJ/day/m²
 
-    alpha = 1.26
-    delta = 0.2 * (0.00738 * tempc + 0.8072)^7 - 0.000116
-    lambda = 2.501 - 0.002361 * tempc
-    gamma = (CP * presskp) / (0.622 * lambda)
+    α = 1.26
+    δ = 0.2 * (0.00738 * tempc + 0.8072)^7 - 0.000116
+    λ = 2.501 - 0.002361 * tempc
+    γ = (CP_LOCAL * presskp) / (0.622 * λ)
 
-    pet = alpha * rad_mj * delta / (delta + gamma)
-    pet = pet / lambda
+    pet = α * rad_mj * δ / (δ + γ)
+    pet = pet / λ
 
     return pet
 end
@@ -55,7 +54,6 @@ end
 Penman-Monteith 法计算潜在蒸散发
 
 # 参数
-- `i::Int`, `j::Int`: 网格坐标  
 - `tempk::Float64`: 温度 (K)
 - `rad::Float64`: 净辐射 (W/m²)
 - `rshort::Float64`: 短波辐射 (W/m²)
@@ -69,17 +67,17 @@ Penman-Monteith 法计算潜在蒸散发
 # 返回
 - `Float64`: 潜在蒸散发 (mm/3h)
 """
-function potevap_penman_monteith(i::Int, j::Int, tempk::Float64, rad::Float64, rshort::Float64,
+function potevap_penman_monteith(tempk::Float64, rad::Float64, rshort::Float64,
     press::Float64, qair::Float64, wind::Float64, lai::Float64,
     veg::Float64, hveg::Float64)
 
     tempc = tempk - 273.15
     pressesat = 610.8 * exp(17.27 * tempc / (tempc + 237.3))  # Pa
     pressvap = qair * press / (0.622 + qair)  # Pa
-    delta = 4098.0 * pressesat / (tempc + 237.3)^2  # Pa/K
+    δ = 4098.0 * pressesat / (tempc + 237.3)^2  # Pa/K
     vpd = pressesat - pressvap
-    lambda = (2.501 - 0.002361 * tempc) * 1.0e6  # J/kg
-    gamma = (CP * press) / (0.622 * lambda)
+    λ = (2.501 - 0.002361 * tempc) * 1.0e6  # J/kg
+    γ = (CP * press) / (0.622 * λ)
     dens = press / (RD * tempk * (1.0 + 0.608 * qair))
 
     # 空气动力学阻力计算
@@ -109,8 +107,8 @@ function potevap_penman_monteith(i::Int, j::Int, tempk::Float64, rad::Float64, r
     end
 
     # 计算蒸散发
-    pet = (delta * rad + dens * CP * vpd / ra) / (delta + gamma * (1.0 + rs / ra))
-    pet = 3.0 * 3600.0 * pet / lambda
+    pet = (δ * rad + dens * CP * vpd / ra) / (δ + γ * (1.0 + rs / ra))
+    pet = 3.0 * 3600.0 * pet / λ
 
     return pet
 end
@@ -120,8 +118,7 @@ end
 Shuttleworth-Wallace 双源法计算蒸散发组分
 
 # 参数
-- `i::Int`, `j::Int`: 网格坐标
-- `deltat::Float64`: 时间步长 (s)
+- `Δt::Float64`: 时间步长 (s)
 - `tempk::Float64`: 温度 (K)
 - `rad::Float64`: 净辐射 (W/m²)
 - `rshort::Float64`: 短波辐射 (W/m²)
@@ -134,22 +131,22 @@ Shuttleworth-Wallace 双源法计算蒸散发组分
 - `floodflag::Int`: 洪水标志
 
 # 返回
-- `Tuple`: (delta, gamma, lambda, ra_a, ra_c, rs_c, R_a, R_s, pet_s, pet_c, pet_w, pet_i)
+- `Tuple`: (δ, γ, λ, ra_a, ra_c, rs_c, R_a, R_s, pet_s, pet_c, pet_w, pet_i)
 """
-function potevap_shutteworth_wallace(i::Int, j::Int, deltat::Float64, tempk::Float64, rad::Float64,
+function potevap_shutteworth_wallace(Δt::Float64, tempk::Float64, rad::Float64,
     rshort::Float64, press::Float64, qair::Float64, wind::Float64,
     lai::Float64, veg::Float64, hhveg::Float64, floodflag::Int)
-    const CP = 1013.0  # J/kg/K
-    const VK = 0.41    # von Karman 常数  
-    const RD = 287.0   # 干空气气体常数
+    CP_LOCAL = 1013.0  # J/kg/K
+    VK_LOCAL = 0.41    # von Karman 常数  
+    RD_LOCAL = 287.0   # 干空气气体常数
 
     # 植被叶阻力参数
-    const RL = [150.0, 150.0, 500.0, 500.0, 175.0, 240.0, 110.0, 100.0, 250.0, 150.0,
+    RL_LOCAL = [150.0, 150.0, 500.0, 500.0, 175.0, 240.0, 110.0, 100.0, 250.0, 150.0,
         80.0, 225.0, 225.0, 250.0, 180.0, 180.0, 240.0, 500.0, 240.0, 500.0,
         175.0, 250.0, 250.0, 175.0, 225.0, 150.0, 110.0, 180.0, 250.0, 250.0]
 
     # 生物物理参数 [地表粗糙度, 最大叶宽度]
-    const BIOPARMS = [
+    BIOPARMS_LOCAL = [
         0.001 0.0;    # 0  海洋
         0.001 0.0;    # 1  湖泊、河流
         0.001 0.0;    # 2  冰川
@@ -186,21 +183,21 @@ function potevap_shutteworth_wallace(i::Int, j::Int, deltat::Float64, tempk::Flo
     tempc = tempk - 273.15
     pressesat = 610.8 * exp(17.27 * tempc / (tempc + 237.3))  # Pa
     pressvap = qair * press / (0.622 + qair)  # Pa
-    delta = 4098.0 * pressesat / (tempc + 237.3)^2  # Pa/K
+    δ = 4098.0 * pressesat / (tempc + 237.3)^2  # Pa/K
     vpd = pressesat - pressvap
-    lambda = (2.501 - 0.002361 * tempc) * 1.0e6  # J/kg
-    gamma = (CP * press) / (0.622 * lambda)
-    dens = press / (RD * tempk * (1.0 + 0.608 * qair))
+    λ = (2.501 - 0.002361 * tempc) * 1.0e6  # J/kg
+    γ = (CP_LOCAL * press) / (0.622 * λ)
+    dens = press / (RD_LOCAL * tempk * (1.0 + 0.608 * qair))
 
     # 确保植被高度不为零
     hveg = max(hhveg, 0.1)
 
     if round(Int, veg) <= 1
         # 水体或裸地
-        pet_w = (delta * rad + gamma * 6.43 * (1.0 + 0.536 * wind) * vpd / (24.0 * 3600.0)) / (delta + gamma)
-        pet_w = max(deltat * pet_w / lambda, 0.0)
+        pet_w = (δ * rad + γ * 6.43 * (1.0 + 0.536 * wind) * vpd / (24.0 * 3600.0)) / (δ + γ)
+        pet_w = max(Δt * pet_w / λ, 0.0)
 
-        return (delta, gamma, lambda, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, pet_w, 0.0)
+        return (δ, γ, λ, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, pet_w, 0.0)
     else
         pet_w = 0.0
 
@@ -227,8 +224,8 @@ function potevap_shutteworth_wallace(i::Int, j::Int, deltat::Float64, tempk::Flo
 
         # 地表粗糙度
         veg_int = round(Int, veg)
-        veg_int = max(1, min(veg_int, size(BIOPARMS, 1)))
-        z0g = floodflag == 0 ? BIOPARMS[veg_int, 1] : BIOPARMS[1, 1]
+        veg_int = max(1, min(veg_int, size(BIOPARMS_LOCAL, 1)))
+        z0g = floodflag == 0 ? BIOPARMS_LOCAL[veg_int, 1] : BIOPARMS_LOCAL[1, 1]
 
         # 冠层粗糙度
         z0 = min(0.3 * (hveg - d0), z0g + 0.3 * hveg * (c_d * lai)^0.5)
@@ -265,8 +262,8 @@ function potevap_shutteworth_wallace(i::Int, j::Int, deltat::Float64, tempk::Flo
 
         # 叶宽度
         wleaf = veg_int in [4, 5, 13, 20, 21] ?
-                BIOPARMS[veg_int, 2] * (1.0 - exp(-0.6 * lai)) :
-                BIOPARMS[veg_int, 2]
+                BIOPARMS_LOCAL[veg_int, 2] * (1.0 - exp(-0.6 * lai)) :
+                BIOPARMS_LOCAL[veg_int, 2]
 
         rb = 100.0 * (wleaf / uc)^0.5 / ((1.0 - exp(-n / 2.0)) * n)
 
@@ -282,24 +279,24 @@ function potevap_shutteworth_wallace(i::Int, j::Int, deltat::Float64, tempk::Flo
         if slai * frad * fswp * fvpd == 0.0
             rs_c = 5000.0
         else
-            rs_c = min(RL[veg_int] / (slai * frad * fswp * fvpd), 5000.0)
+            rs_c = min(RL_LOCAL[veg_int] / (slai * frad * fswp * fvpd), 5000.0)
         end
 
         # 组合阻力
-        R_a = (delta + gamma) * ra_a
-        R_c = (delta + gamma) * ra_c + gamma * rs_c
-        R_s = (delta + gamma) * ra_s
+        R_a = (δ + γ) * ra_a
+        R_c = (δ + γ) * ra_c + γ * rs_c
+        R_s = (δ + γ) * ra_s
 
         # 蒸散发计算
-        pet_c = (delta * rad + (dens * CP * vpd - delta * ra_c * Rn_s) / (ra_a + ra_c))
-        pet_s = (delta * rad + (dens * CP * vpd - delta * ra_s * (rad - Rn_s)) / (ra_a + ra_s))
+        pet_c = (δ * rad + (dens * CP * vpd - δ * ra_c * Rn_s) / (ra_a + ra_c))
+        pet_s = (δ * rad + (dens * CP * vpd - δ * ra_s * (rad - Rn_s)) / (ra_a + ra_s))
 
         # 截留蒸发（气孔阻力为0）
         C_c = lai < 0.001 ? 0.0 : 1.0 / (1.0 + R_a * R_c / (R_s * (R_c + R_a)))
-        pet_i = C_c * (delta * rad + (dens * CP * vpd - delta * ra_c * Rn_s) / (ra_a + ra_c)) / (delta + gamma)
-        pet_i = max(deltat * pet_i / lambda, 0.0)
+        pet_i = C_c * (δ * rad + (dens * CP * vpd - δ * ra_c * Rn_s) / (ra_a + ra_c)) / (δ + γ)
+        pet_i = max(Δt * pet_i / λ, 0.0)
 
-        return (delta, gamma, lambda, ra_a, ra_c, rs_c, R_a, R_s, pet_s, pet_c, pet_w, pet_i)
+        return (δ, γ, λ, ra_a, ra_c, rs_c, R_a, R_s, pet_s, pet_c, pet_w, pet_i)
     end
 end
 

@@ -51,15 +51,15 @@ veg = 5.0           # 植被类型（落叶阔叶林）
 hveg = 15.0         # 植被高度 15 m
 
 # Priestley-Taylor 方法
-pet_pt = potevap_priestly_taylor(1, 1, tempk, rad * 0.1, press * 0.01)
+pet_pt = potevap_priestly_taylor(tempk, rad * 0.1, press * 0.01)
 println("Priestley-Taylor 蒸散发: $(round(pet_pt, digits=3)) mm")
 
 # Penman-Monteith 方法
-pet_pm = potevap_penman_monteith(1, 1, tempk, rad, rshort, press, qair, wind, lai, veg, hveg)
+pet_pm = potevap_penman_monteith(tempk, rad, rshort, press, qair, wind, lai, veg, hveg)
 println("Penman-Monteith 蒸散发: $(round(pet_pm, digits=3)) mm/3h")
 
 # Shuttleworth-Wallace 方法
-result = potevap_shutteworth_wallace(1, 1, 3600.0, tempk, rad, rshort, press, qair, wind, lai, veg, hveg, 0)
+result = potevap_shutteworth_wallace(3600.0, tempk, rad, rshort, press, qair, wind, lai, veg, hveg, 0)
 delta, gamma, lambda, ra_a, ra_c, rs_c, R_a, R_s, pet_s, pet_c, pet_w, pet_i = result
 println("Shuttleworth-Wallace 截留蒸发: $(round(pet_i, digits=3)) mm/h")
 
