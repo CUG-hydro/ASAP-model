@@ -35,26 +35,26 @@ export soilfluxes, tridag
 """
 function soilfluxes(
     i::Int, j::Int, nzg::Int, freedrain::Int, dtll::Float64,
-    slz::Vector{Float64}, dz::Vector{Float64}, soiltxt::Int,
-    smoiwtd::Float64, transp::Vector{Float64}, transpdeep::Float64,
+    z₋ₕ::Vector{Float64}, Δz::Vector{Float64}, soiltxt::Int,
+    θ_wtd::Float64, transp::Vector{Float64}, transpdeep::Float64,
     θ::Vector{Float64}, wtd::Float64, precip::Float64, pet_s::Float64,
     fdepth::Float64, qlat::Float64, qrf::Float64, flood::Float64,
     icefactor::Vector{Int8}, θ_eq::Vector{Float64},
     o18::Vector{Float64}, precipo18::Float64, tempsfc::Float64, qlato18::Float64, transpo18::Float64)
 
     # 计算辅助变量
-    vctr2 = 1.0 ./ dz  # 层厚度倒数
-    vctr4 = 0.5 .* (slz[1:nzg] .+ slz[2:nzg+1])  # 层中心深度
-    vctr5 = zeros(Float64, nzg)
-    vctr6 = zeros(Float64, nzg)
+    inv_Δz = 1.0 ./ Δz  # 层厚度倒数
+    z = 0.5 .* (z₋ₕ[1:nzg] .+ z₋ₕ[2:nzg+1]) # 层中心深度, z 
+    Δz₊ₕ = zeros(Float64, nzg)
+    inv_Δz₊ₕ = zeros(Float64, nzg)
 
     for k in 2:nzg
-        vctr5[k] = vctr4[k] - vctr4[k-1]
-        vctr6[k] = 1.0 / vctr5[k]
+        Δz₊ₕ[k] = z[k] - z[k-1] # 两层之间的中心位置
+        inv_Δz₊ₕ[k] = 1.0 / Δz₊ₕ[k]
     end
 
     # 初始化变量
-    kfmid = zeros(Float64, nzg)
+    K_mid = zeros(Float64, nzg)
     diffmid = zeros(Float64, nzg)
     vt3di = zeros(Float64, nzg + 1)
     gravflux = zeros(Float64, nzg + 1)
@@ -73,9 +73,9 @@ function soilfluxes(
 
     # 顶部边界条件：入渗 + 土壤蒸发
     soil_params = get_soil_params(soiltxt)
-    smoicp = soil_params.ρb
-
-    if θ[nzg] <= smoicp
+    θ_cp = soil_params.ρb
+    
+    if θ[nzg] <= θ_cp
         pet_s_actual = 0.0
     else
         pet_s_actual = pet_s
@@ -93,7 +93,7 @@ function soilfluxes(
     if freedrain == 0
         iwtd = 1
         for k in 1:nzg
-            if wtd < slz[k]
+            if wtd < z₋ₕ[k]
                 iwtd = k
                 break
             end
@@ -104,22 +104,22 @@ function soilfluxes(
 
     # 计算中间层的导水率和扩散率
     for k in max(iwtd - 1, 2):nzg
-        θmid = θ[k] + (θ[k] - θ[k-1]) * (slz[k] - vctr4[k]) * vctr6[k]
+        θmid = θ[k] + (θ[k] - θ[k-1]) * (z₋ₕ[k] - z[k]) * inv_Δz₊ₕ[k]
 
         # 获取土壤参数
         soil_params = get_soil_params(soiltxt)
         (; Ksat, θ_sat, ψsat, b) = soil_params
 
-        _Ksat = soil_params.Ksat * max(min(exp((slz[k] + 1.5) / fdepth), 1.0), 0.1)
-        _θsat = soil_params.θ_sat * max(min(exp((slz[k] + 1.5) / fdepth), 1.0), 0.1)
-        _ψsat = soil_params.ψsat * min(max(exp(-(slz[k] + 1.5) / fdepth), 1.0), 10.0)
+        _Ksat = soil_params.Ksat * max(min(exp((z₋ₕ[k] + 1.5) / fdepth), 1.0), 0.1)
+        _θsat = soil_params.θ_sat * max(min(exp((z₋ₕ[k] + 1.5) / fdepth), 1.0), 0.1)
+        _ψsat = soil_params.ψsat * min(max(exp(-(z₋ₕ[k] + 1.5) / fdepth), 1.0), 10.0)
 
         θmid = min(θmid, _θsat)
 
         # 考虑冰冻因子
         f_ice = icefactor[k] == 0 ? 1.0 : 0.0
 
-        kfmid[k] = f_ice * _Ksat * (θmid / _θsat)^(2.0 * soil_params.b + 3.0)
+        K_mid[k] = f_ice * _Ksat * (θmid / _θsat)^(2.0 * soil_params.b + 3.0)
         diffmid[k] = -f_ice * (_Ksat * _ψsat * soil_params.b / _θsat) *
                      (θmid / _θsat)^(soil_params.b + 2.0)
     end
@@ -131,39 +131,39 @@ function soilfluxes(
     rr = zeros(Float64, nzg)
 
     for k in max(iwtd, 3):nzg
-        aa[k] = diffmid[k] * vctr6[k]
-        cc[k] = diffmid[k+1] * vctr6[k+1] # TODO: bug here, 数组越界
-        bb[k] = -(aa[k] + cc[k] + dz[k] / dtll)
-        rr[k] = -θ[k] * dz[k] / dtll - kfmid[k+1] + kfmid[k] + transp[k] / dtll
+        aa[k] = diffmid[k] * inv_Δz₊ₕ[k]
+        cc[k] = diffmid[k+1] * inv_Δz₊ₕ[k+1] # TODO: bug here, 数组越界
+        bb[k] = -(aa[k] + cc[k] + Δz[k] / dtll)
+        rr[k] = -θ[k] * Δz[k] / dtll - K_mid[k+1] + K_mid[k] + transp[k] / dtll
     end
 
     # 顶部边界条件
     if iwtd - 1 == nzg
         aa[nzg] = 0.0
         cc[nzg] = 0.0
-        bb[nzg] = -dz[nzg] / dtll
-        rr[nzg] = vt3di[nzg+1] / dtll - θ[nzg] * dz[nzg] / dtll + transp[nzg] / dtll +
-                  min(kfmid[nzg] + diffmid[nzg] * vctr6[nzg] * (θ[nzg] - θ[nzg-1]), 0.0)
+        bb[nzg] = -Δz[nzg] / dtll
+        rr[nzg] = vt3di[nzg+1] / dtll - θ[nzg] * Δz[nzg] / dtll + transp[nzg] / dtll +
+                  min(K_mid[nzg] + diffmid[nzg] * inv_Δz₊ₕ[nzg] * (θ[nzg] - θ[nzg-1]), 0.0)
     else
-        aa[nzg] = diffmid[nzg] * vctr6[nzg]
+        aa[nzg] = diffmid[nzg] * inv_Δz₊ₕ[nzg]
         cc[nzg] = 0.0
-        bb[nzg] = -aa[nzg] - dz[nzg] / dtll
-        rr[nzg] = vt3di[nzg+1] / dtll - θ[nzg] * dz[nzg] / dtll + kfmid[nzg] + transp[nzg] / dtll
+        bb[nzg] = -aa[nzg] - Δz[nzg] / dtll
+        rr[nzg] = vt3di[nzg+1] / dtll - θ[nzg] * Δz[nzg] / dtll + K_mid[nzg] + transp[nzg] / dtll
     end
 
     # 底部边界条件
     if freedrain != 1
         if iwtd <= 2
             aa[1] = 0.0
-            cc[1] = diffmid[2] * vctr6[2]
-            bb[1] = -(cc[1] + dz[1] / dtll)
-            rr[1] = -θ[1] * dz[1] / dtll - kfmid[2] + transp[1] / dtll
+            cc[1] = diffmid[2] * inv_Δz₊ₕ[2]
+            bb[1] = -(cc[1] + Δz[1] / dtll)
+            rr[1] = -θ[1] * Δz[1] / dtll - K_mid[2] + transp[1] / dtll
 
             k = 2
-            aa[k] = diffmid[k] * vctr6[k]
-            cc[k] = diffmid[k+1] * vctr6[k+1]
-            bb[k] = -(aa[k] + cc[k] + dz[k] / dtll)
-            rr[k] = -θ[k] * dz[k] / dtll - kfmid[k+1] + kfmid[k] + transp[k] / dtll
+            aa[k] = diffmid[k] * inv_Δz₊ₕ[k]
+            cc[k] = diffmid[k+1] * inv_Δz₊ₕ[k+1]
+            bb[k] = -(aa[k] + cc[k] + Δz[k] / dtll)
+            rr[k] = -θ[k] * Δz[k] / dtll - K_mid[k+1] + K_mid[k] + transp[k] / dtll
         else
             # 其他层保持不变
             for k in 1:(iwtd-3)
@@ -175,30 +175,30 @@ function soilfluxes(
 
             k = iwtd - 1  # 地下水位层
             aa[k] = 0.0
-            cc[k] = diffmid[k+1] * vctr6[k+1]
-            bb[k] = -(cc[k] + dz[k] / dtll)
-            rr[k] = -θ[k] * dz[k] / dtll - kfmid[k+1] + transp[k] / dtll +
-                    min(kfmid[k] + diffmid[k] * vctr6[k] * (θ[k] - θ[k-1]), 0.0)
+            cc[k] = diffmid[k+1] * inv_Δz₊ₕ[k+1]
+            bb[k] = -(cc[k] + Δz[k] / dtll)
+            rr[k] = -θ[k] * Δz[k] / dtll - K_mid[k+1] + transp[k] / dtll +
+                    min(K_mid[k] + diffmid[k] * inv_Δz₊ₕ[k] * (θ[k] - θ[k-1]), 0.0)
 
             k = iwtd - 2
             aa[k] = 0.0
             cc[k] = 0.0
-            bb[k] = -dz[k] / dtll
-            rr[k] = -θ[k] * dz[k] / dtll +
-                    max(-kfmid[k+1] - diffmid[k+1] * vctr6[k+1] * (θ[k+1] - θ[k]), 0.0)
+            bb[k] = -Δz[k] / dtll
+            rr[k] = -θ[k] * Δz[k] / dtll +
+                    max(-K_mid[k+1] - diffmid[k+1] * inv_Δz₊ₕ[k+1] * (θ[k+1] - θ[k]), 0.0)
         end
     else
         # 重力排水边界
         soil_params = get_soil_params(soiltxt)
-        hydcon = soil_params.Ksat * max(min(exp((slz[1] + 1.5) / fdepth), 1.0), 0.1)
-        smoisat = soil_params.θ_sat * max(min(exp((slz[1] + 1.5) / fdepth), 1.0), 0.1)
+        K = soil_params.Ksat * max(min(exp((z₋ₕ[1] + 1.5) / fdepth), 1.0), 0.1)
+        smoisat = soil_params.θ_sat * max(min(exp((z₋ₕ[1] + 1.5) / fdepth), 1.0), 0.1)
 
-        kfmid[1] = hydcon * (θ[1] / smoisat)^(2.0 * soil_params.b + 3.0)
+        K_mid[1] = K * (θ[1] / smoisat)^(2.0 * soil_params.b + 3.0)
 
         aa[1] = 0.0
-        cc[1] = diffmid[2] * vctr6[2]
-        bb[1] = -(cc[1] + dz[1] / dtll)
-        rr[1] = -θ[1] * dz[1] / dtll - kfmid[2] + kfmid[1] + transp[1] / dtll
+        cc[1] = diffmid[2] * inv_Δz₊ₕ[2]
+        bb[1] = -(cc[1] + Δz[1] / dtll)
+        rr[1] = -θ[1] * Δz[1] / dtll - K_mid[2] + K_mid[1] + transp[1] / dtll
     end
 
     # 求解三对角系统
@@ -206,7 +206,7 @@ function soilfluxes(
 
     # 计算通量
     for k in max(iwtd, 3):nzg
-        gravflux[k] = -kfmid[k] * dtll
+        gravflux[k] = -K_mid[k] * dtll
         capflux[k] = -aa[k] * (θ[k] - θ[k-1]) * dtll
         vt3di[k] = capflux[k] + gravflux[k]
     end
@@ -215,7 +215,7 @@ function soilfluxes(
         capflux[1] = 0.0
         gravflux[1] = 0.0
         vt3di[1] = 0.0
-        gravflux[2] = -kfmid[2] * dtll
+        gravflux[2] = -K_mid[2] * dtll
         capflux[2] = -aa[2] * (θ[2] - θ[1]) * dtll
         vt3di[2] = capflux[2] + gravflux[2]
     else
@@ -226,8 +226,8 @@ function soilfluxes(
         end
 
         k = iwtd - 1
-        gravflux[k] = -kfmid[k] * dtll
-        capflux[k] = -diffmid[k] * vctr6[k] * (θ_old[k] - θ_old[k-1]) * dtll
+        gravflux[k] = -K_mid[k] * dtll
+        capflux[k] = -diffmid[k] * inv_Δz₊ₕ[k] * (θ_old[k] - θ_old[k-1]) * dtll
 
         if capflux[k] > -gravflux[k]
             vt3di[k] = capflux[k] + gravflux[k]
@@ -244,24 +244,24 @@ function soilfluxes(
     if freedrain == 0
         vt3di[1] = 0.0
     else
-        vt3di[1] = -kfmid[1] * dtll
+        vt3di[1] = -K_mid[1] * dtll
     end
 
     # 重新计算土壤含水量
     θ .= θ_old
     for k in 1:nzg
-        θ_old[k] = θ_old[k] + (vt3di[k] - vt3di[k+1] - transp[k]) * vctr2[k]
+        θ_old[k] = θ_old[k] + (vt3di[k] - vt3di[k+1] - transp[k]) * inv_Δz[k]
     end
 
     # 检查并修正土壤含水量边界
     for k in 1:nzg
         soil_params = get_soil_params(soiltxt)
-        smoisat = soil_params.θ_sat * max(min(exp((vctr4[k] + 1.5) / fdepth), 1.0), 0.1)
+        smoisat = soil_params.θ_sat * max(min(exp((z[k] + 1.5) / fdepth), 1.0), 0.1)
 
         if θ_old[k] > smoisat
-            dsmoi = max((θ_old[k] - smoisat) * dz[k], 0.0)
+            dsmoi = max((θ_old[k] - smoisat) * Δz[k], 0.0)
             if k < nzg
-                θ_old[k+1] = θ_old[k+1] + dsmoi * vctr2[k+1]
+                θ_old[k+1] = θ_old[k+1] + dsmoi * inv_Δz[k+1]
                 vt3di[k+1] = vt3di[k+1] + dsmoi
             else
                 vt3di[k+1] = vt3di[k+1] + dsmoi
@@ -284,39 +284,39 @@ function soilfluxes(
     # 处理最上层的干燥限制
     k = nzg
     soil_params = get_soil_params(soiltxt)
-    smoicp = soil_params.ρb * max(min(exp((vctr4[k] + 1.5) / fdepth), 1.0), 0.1)
+    θ_cp = soil_params.ρb * max(min(exp((z[k] + 1.5) / fdepth), 1.0), 0.1)
 
     et_s = pet_s
-    if θ_old[k] < smoicp
-        dsmoi = max((smoicp - θ_old[k]) * dz[k], 0.0)
+    if θ_old[k] < θ_cp
+        dsmoi = max((θ_cp - θ_old[k]) * Δz[k], 0.0)
         if vt3di[k+1] > dsmoi
             et_s = max(0.0, pet_s - dsmoi * 1.0e3)
-            θ_old[k] = smoicp
+            θ_old[k] = θ_cp
             vt3di[k+1] = vt3di[k+1] - dsmoi
         else
             et_s = max(0.0, pet_s - max(vt3di[k+1], 0.0) * 1.0e3)
             vt3di[k+1] = min(vt3di[k+1], 0.0)
-            θ_old[k] = θ_old[k] + max(vt3di[k+1], 0.0) / dz[k]
+            θ_old[k] = θ_old[k] + max(vt3di[k+1], 0.0) / Δz[k]
 
-            dsmoi = max((smoicp - θ_old[k]) * dz[k], 0.0)
-            θ_old[k-1] = θ_old[k-1] - dsmoi * vctr2[k-1]
+            dsmoi = max((θ_cp - θ_old[k]) * Δz[k], 0.0)
+            θ_old[k-1] = θ_old[k-1] - dsmoi * inv_Δz[k-1]
             vt3di[k] = vt3di[k] + dsmoi
-            θ_old[k] = smoicp
+            θ_old[k] = θ_cp
         end
     end
 
     # 继续处理下层
     for k in (nzg-1):-1:1
         soil_params = get_soil_params(soiltxt)
-        smoicp = soil_params.ρb * max(min(exp((vctr4[k] + 1.5) / fdepth), 1.0), 0.1)
+        θ_cp = soil_params.ρb * max(min(exp((z[k] + 1.5) / fdepth), 1.0), 0.1)
 
-        if θ_old[k] < smoicp
-            dsmoi = max((smoicp - θ_old[k]) * dz[k], 0.0)
+        if θ_old[k] < θ_cp
+            dsmoi = max((θ_cp - θ_old[k]) * Δz[k], 0.0)
             if k > 1
-                θ_old[k-1] = θ_old[k-1] - dsmoi * vctr2[k-1]
+                θ_old[k-1] = θ_old[k-1] - dsmoi * inv_Δz[k-1]
             end
             vt3di[k] = vt3di[k] + dsmoi
-            θ_old[k] = smoicp
+            θ_old[k] = θ_cp
         end
     end
 
