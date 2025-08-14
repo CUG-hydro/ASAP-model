@@ -228,9 +228,9 @@ function updatedeepwtable!(
                     # 更新水位处土壤湿度
                     newwgp = smoiwtd[i, j] + (deeprech[i, j] - bottomflux[i, j]) / (slz[1] - wtd[i, j])
 
-                    if newwgp < soil_params.ρb
-                        deeprech[i, j] += (soil_params.ρb - newwgp) * (slz[1] - wtd[i, j])
-                        newwgp = soil_params.ρb
+                    if newwgp < soil_params.θ_cp
+                        deeprech[i, j] += (soil_params.θ_cp - newwgp) * (slz[1] - wtd[i, j])
+                        newwgp = soil_params.θ_cp
                     end
 
                     if newwgp > soil_params.θ_sat
@@ -316,17 +316,17 @@ function updatewtd_simple(
 
             if wtd >= slz[1] - dz[1]
                 # 在土壤层附近
-                maxwatdw = dz[1] * (smoiwtd - soil_params.ρb)
+                maxwatdw = dz[1] * (smoiwtd - soil_params.θ_cp)
                 if -totwater <= maxwatdw
                     new_smoiwtd = smoiwtd + totwater / dz[1]
                 else
-                    new_wtd = wtd + totwater / (soil_params.θ_sat - soil_params.ρb)
+                    new_wtd = wtd + totwater / (soil_params.θ_sat - soil_params.θ_cp)
                 end
             else
                 # 深部水位下降
                 wgpmid = soil_params.θ_sat *
                          (soil_params.ψsat / (soil_params.ψsat - (slz[1] - wtd)))^(1.0 / soil_params.b)
-                wgpmid = max(wgpmid, soil_params.ρb)
+                wgpmid = max(wgpmid, soil_params.θ_cp)
 
                 syielddw = soil_params.θ_sat - wgpmid
                 new_wtd = wtd + totwater / syielddw

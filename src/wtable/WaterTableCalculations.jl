@@ -86,9 +86,9 @@ function wtable!(
                     # 更新水位处土壤湿度
                     newwgp = smoiwtd[i, j] + (deeprech[i, j] - bottomflux[i, j]) / (slz[1] - wtd[i, j])
 
-                    if newwgp < soil_params.ρb
-                        deeprech[i, j] += (soil_params.ρb - newwgp) * (slz[1] - wtd[i, j])
-                        newwgp = soil_params.ρb
+                    if newwgp < soil_params.θ_cp
+                        deeprech[i, j] += (soil_params.θ_cp - newwgp) * (slz[1] - wtd[i, j])
+                        newwgp = soil_params.θ_cp
                     end
 
                     if newwgp > soil_params.θ_sat
@@ -280,7 +280,7 @@ function updatewtd!(
             if totwater <= maxwatup
                 smoieqwtd = soil_params.θ_sat *
                             (soil_params.ψsat / (soil_params.ψsat - dz[1]))^(1.0 / soil_params.b)
-                smoieqwtd = max(smoieqwtd, soil_params.ρb)
+                smoieqwtd = max(smoieqwtd, soil_params.θ_cp)
 
                 smoiwtd += totwater / dz[1]
                 smoiwtd = min(smoiwtd, soil_params.θ_sat)
@@ -365,7 +365,7 @@ function updatewtd!(
 
                 smoieqwtd = soil_params.θ_sat *
                             (soil_params.ψsat / (soil_params.ψsat - dz[1]))^(1.0 / soil_params.b)
-                smoieqwtd = max(smoieqwtd, soil_params.ρb)
+                smoieqwtd = max(smoieqwtd, soil_params.θ_cp)
 
                 maxwatdw = dz[1] * (smoiwtd - smoieqwtd)
 
@@ -391,7 +391,7 @@ function updatewtd!(
 
             wgpmid = soil_params.θ_sat *
                      (soil_params.ψsat / (soil_params.ψsat - (slz[1] - wtd)))^(1.0 / soil_params.b)
-            wgpmid = max(wgpmid, soil_params.ρb)
+            wgpmid = max(wgpmid, soil_params.θ_cp)
 
             syielddw = soil_params.θ_sat - wgpmid
             wtdold = wtd

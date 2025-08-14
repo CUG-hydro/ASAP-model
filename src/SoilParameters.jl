@@ -13,11 +13,11 @@ const NSTYP = 13  # 土壤类型数量
 # 土壤参数结构体
 struct SoilType
     θ_sat::Float64      # 饱和含水量, θ_sat
+    θ_cp::Float64       # 残差含水量, θ_cp
     θ_wilt::Float64     # 凋萎点含水量, θ_wilt
-    ψsat::Float64          # 饱和基质势, ψsat
-    Ksat::Float64      # 饱和导水率, Ksat
-    K_latfactor::Float64  # 侧向流因子, K_latfactor
-    ρb::Float64         # 土壤容重(bulk density), ρb
+    ψsat::Float64       # 饱和基质势, ψsat
+    Ksat::Float64       # 饱和导水率, Ksat
+    K_latfactor::Float64# 侧向流因子, K_latfactor
     b::Float64          # 土壤b参数, b
 end
 
@@ -46,13 +46,13 @@ function get_soil_params(soil_type::Int)
     end
 
     return SoilType(
-        θSAT[soil_type],      # θ_sat
-        0.0,                    # θ_wilt 将在初始化时计算
-        ΨSAT[soil_type],      # ψsat
-        KSAT[soil_type],      # Ksat
-        KLATFACTOR[soil_type],  # K_latfactor
-        SOILCP[soil_type],      # ρb
-        SLBS[soil_type],        # b
+        θSAT[soil_type],       # θ_sat
+        SOILCP[soil_type],     # θ_cp
+        0.0,                   # θ_wilt 将在初始化时计算
+        ΨSAT[soil_type],       # ψsat
+        KSAT[soil_type],       # Ksat
+        KLATFACTOR[soil_type], # K_latfactor
+        SLBS[soil_type],       # b
     )
 end
 

@@ -94,8 +94,8 @@ function rootdepth_main(
     soiltxt::Array{Int,3}, wind::M, temp::M,
     qair::M, press::M, netrad::M,
     rshort::M, lai::M, precip::M,
-    qsrun::M, smoi::A3, smoieq::A3,
-    smoiwtd::M, wtd::M, waterdeficit::M,
+    qsrun::M, θ::A3, θ_eq::A3,
+    θ_wtd::M, wtd::M, waterdeficit::M,
     watext::A3,
     watextdeep::M, rech::M,
     deeprech::M,
@@ -172,7 +172,7 @@ function rootdepth_main(
             for itime in 1:round(Int, steps)
                 # 水分提取计算
                 pet_s, pet_c, watdef, dsmoi, dsmoideep = extraction(i, j, nzg, slz, dz, Δt / steps,
-                    soiltxt[1, i, j], wtd[i, j], smoi[:, i, j], smoiwtd[i, j], δ, γ, λ, lai[i, j],
+                    soiltxt[1, i, j], wtd[i, j], θ[:, i, j], θ_wtd[i, j], δ, γ, λ, lai[i, j],
                     ra_a, ra_c, rs_c, R_a, R_s, petfactor_s, petfactor_c, inactivedays[:, i, j],
                     maxinactivedays, fieldcp, hveg[i, j], fdepth[i, j], icefac)
 
@@ -185,11 +185,15 @@ function rootdepth_main(
 
                 # 土壤水流计算
                 et_s_step, runoff, rechstep, flux_step, qrfcorrect, transpo18step, updated_smoi, updated_o18 =
-                    soilfluxes(i, j, nzg, freedrain, Δt / steps, slz, dz, soiltxt[1, i, j], smoiwtd[i, j],
-                        dsmoi, dsmoideep, smoi[:, i, j], wtd[i, j], ppdrip_step, pet_s,
+                    soilfluxes(nzg, freedrain, Δt / steps, slz, dz, soiltxt[1, i, j], 
+                        θ_wtd[i, j],
+                        dsmoi, dsmoideep, θ[:, i, j], wtd[i, j], ppdrip_step, pet_s,
                         fdepth[i, j], qlatstep, qrfstep, floodstep, icefac,
-                        smoieq[:, i, j], o18[:, i, j], o18ratiopp[i, j], tempsfc[i, j],
-                        qlato18step, transpo18step)
+                        )
+                # θ_eq[:, i, j], o18[:, i, j], o18ratiopp[i, j], tempsfc[i, j],
+                # qlato18step, transpo18step
+
+                        
 
                 # 更新状态变量
                 delsfcwat[i, j] -= max(floodstep - runoff, 0.0)  # m
@@ -202,12 +206,12 @@ function rootdepth_main(
                 qrf[i, j] += qrfcorrect
 
                 # 更新土壤含水量和同位素
-                smoi[:, i, j] .= updated_smoi
+                θ[:, i, j] .= updated_smoi
                 o18[:, i, j] .= updated_o18
 
                 # 更新浅层地下水位
                 wtd[i, j], rech_additional = updateshallowwtd(i, j, nzg, freedrain, slz, dz,
-                    soiltxt[1, i, j], smoieq[:, i, j], smoiwtd[i, j], smoi[:, i, j], wtd[i, j], fdepth[i, j])
+                    soiltxt[1, i, j], θ_eq[:, i, j], θ_wtd[i, j], θ[:, i, j], wtd[i, j], fdepth[i, j])
 
                 rech[i, j] += rech_additional * 1.0e3
                 qlatsum[i, j] += qlatstep

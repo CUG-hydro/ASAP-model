@@ -34,7 +34,7 @@ using ASAP, Test
 
     # 调用soilfluxes函数
     et_s, runoff, rech, flux, qrfcorrect, transpo18_out, θ_new, o18_new =
-        soilfluxes(i, j, nzg, freedrain, dtll, slz, dz, soiltxt,
+        soilfluxes(nzg, freedrain, dtll, slz, dz, soiltxt,
             smoiwtd, transp, transpdeep, θ, wtd, precip, pet_s,
             fdepth, qlat, qrf, flood, icefactor, θ_eq,
             o18, precipo18, tempsfc, qlato18, transpo18)
@@ -87,14 +87,14 @@ end
 
     # 测试无降水
     et_s1, runoff1, _, _, _, _, _, _ =
-        soilfluxes(i, j, nzg, freedrain, dtll, slz, dz, soiltxt,
+        soilfluxes(nzg, freedrain, dtll, slz, dz, soiltxt,
             smoiwtd, transp, transpdeep, copy(θ), wtd, 0.0, pet_s,
             fdepth, qlat, qrf, flood, icefactor, θ_eq,
             copy(o18), precipo18, tempsfc, qlato18, transpo18)
 
     # 测试大降水
     et_s2, runoff2, _, _, _, _, _, _ =
-        soilfluxes(i, j, nzg, freedrain, dtll, slz, dz, soiltxt,
+        soilfluxes(nzg, freedrain, dtll, slz, dz, soiltxt,
             smoiwtd, transp, transpdeep, copy(θ), wtd, 50.0, pet_s,
             fdepth, qlat, qrf, flood, icefactor, θ_eq,
             copy(o18), precipo18, tempsfc, qlato18, transpo18)
@@ -133,7 +133,7 @@ end
     transpo18 = 0.0
 
     et_s, runoff, rech, flux, qrfcorrect, transpo18_out, θ_new, o18_new =
-        soilfluxes(i, j, nzg, freedrain, dtll, slz, dz, soiltxt,
+        soilfluxes(nzg, freedrain, dtll, slz, dz, soiltxt,
             smoiwtd, transp, transpdeep, θ, wtd, precip, pet_s,
             fdepth, qlat, qrf, flood, icefactor, θ_eq,
             o18, precipo18, tempsfc, qlato18, transpo18)
@@ -174,7 +174,7 @@ end
     θ_original = copy(θ)
 
     et_s, runoff, rech, flux, qrfcorrect, transpo18_out, θ_new, o18_new =
-        soilfluxes(i, j, nzg, freedrain, dtll, slz, dz, soiltxt,
+        soilfluxes(nzg, freedrain, dtll, slz, dz, soiltxt,
             smoiwtd, transp, transpdeep, θ, wtd, precip, pet_s,
             fdepth, qlat, qrf, flood, icefactor, θ_eq,
             o18, precipo18, tempsfc, qlato18, transpo18)
@@ -215,7 +215,7 @@ end
     # 无冰冻
     icefactor1 = zeros(Int8, nzg)
     et_s1, runoff1, _, _, _, _, _, _ =
-        soilfluxes(i, j, nzg, freedrain, dtll, slz, dz, soiltxt,
+        soilfluxes(nzg, freedrain, dtll, slz, dz, soiltxt,
             smoiwtd, transp, transpdeep, copy(θ), wtd, precip, pet_s,
             fdepth, qlat, qrf, flood, icefactor1, θ_eq,
             copy(o18), precipo18, tempsfc, qlato18, transpo18)
@@ -223,7 +223,7 @@ end
     # 部分冰冻
     icefactor2 = ones(Int8, nzg)  # 全部冰冻
     et_s2, runoff2, _, _, _, _, _, _ =
-        soilfluxes(i, j, nzg, freedrain, dtll, slz, dz, soiltxt,
+        soilfluxes(nzg, freedrain, dtll, slz, dz, soiltxt,
             smoiwtd, transp, transpdeep, copy(θ), wtd, precip, pet_s,
             fdepth, qlat, qrf, flood, icefactor2, θ_eq,
             copy(o18), precipo18, tempsfc, qlato18, transpo18)
@@ -265,7 +265,7 @@ end
     # 测试多种土壤类型
     for soiltxt in [1, 5, 10]
         et_s, runoff, rech, flux, qrfcorrect, transpo18_out, θ_new, o18_new =
-            soilfluxes(i, j, nzg, freedrain, dtll, slz, dz, soiltxt,
+            soilfluxes(nzg, freedrain, dtll, slz, dz, soiltxt,
                 smoiwtd, transp, transpdeep, copy(θ), wtd, precip, pet_s,
                 fdepth, qlat, qrf, flood, icefactor, θ_eq,
                 copy(o18), precipo18, tempsfc, qlato18, transpo18)
@@ -329,7 +329,7 @@ end
     # 测试极端干燥条件
     θ_dry = fill(0.05, nzg)  # 很干的土壤
     et_s, runoff, _, _, _, _, θ_new, _ =
-        soilfluxes(i, j, nzg, freedrain, dtll, slz, dz, soiltxt,
+        soilfluxes(nzg, freedrain, dtll, slz, dz, soiltxt,
             smoiwtd, transp, transpdeep, θ_dry, wtd, 0.0, pet_s,
             fdepth, qlat, qrf, flood, icefactor, θ_eq,
             copy(o18), precipo18, tempsfc, qlato18, transpo18)
@@ -341,7 +341,7 @@ end
     soil_params = get_soil_params(soiltxt)
     θ_sat = fill(soil_params.θ_sat, nzg)
     et_s2, runoff2, _, _, _, _, θ_new2, _ =
-        soilfluxes(i, j, nzg, freedrain, dtll, slz, dz, soiltxt,
+        soilfluxes(nzg, freedrain, dtll, slz, dz, soiltxt,
             smoiwtd, transp, transpdeep, θ_sat, wtd, 50.0, pet_s,
             fdepth, qlat, qrf, flood, icefactor, θ_eq,
             copy(o18), precipo18, tempsfc, qlato18, transpo18)
