@@ -184,16 +184,18 @@ function rootdepth_main(
                 et_c_daily[i, j] += pet_c - watdef * 1.0e3
 
                 # 土壤水流计算
-                et_s_step, runoff, rechstep, flux_step, qrfcorrect, transpo18step, updated_smoi, updated_o18 =
-                    soilfluxes(nzg, freedrain, Δt / steps, slz, dz, soiltxt[1, i, j], 
+                # updated_o18, transpo18step
+                et_s_step, runoff, rechstep, flux_step, qrfcorrect, updated_smoi =
+                    soilfluxes(nzg, Δt / steps, slz, dz, soiltxt[1, i, j],
                         θ_wtd[i, j],
                         dsmoi, dsmoideep, θ[:, i, j], wtd[i, j], ppdrip_step, pet_s,
-                        fdepth[i, j], qlatstep, qrfstep, floodstep, icefac,
-                        )
+                        fdepth[i, j], qlatstep, qrfstep, floodstep, icefac
+                        ; freedrain
+                    )
                 # θ_eq[:, i, j], o18[:, i, j], o18ratiopp[i, j], tempsfc[i, j],
                 # qlato18step, transpo18step
 
-                        
+
 
                 # 更新状态变量
                 delsfcwat[i, j] -= max(floodstep - runoff, 0.0)  # m

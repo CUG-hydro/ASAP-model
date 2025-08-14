@@ -1,4 +1,17 @@
 export soilfluxes, tridag
+export find_jwt
+
+function find_jwt(wtd, z₋ₕ)
+    nzg = length(z₋ₕ) - 1
+    jwt = 1
+    for k in 1:nzg
+        if wtd < z₋ₕ[k]
+            jwt = k # 地下水水位所在的上一层
+            break
+        end
+    end
+    return jwt
+end
 
 """
 计算土壤中的水分通量和运动
@@ -44,10 +57,8 @@ function soilfluxes(
     # o18::Vector{Float64}, precipo18::Float64, tempsfc::Float64, qlato18::Float64, transpo18::Float64
 
     # 计算辅助变量
-    inv_Δz = 1.0 ./ Δz  # 层厚度倒数
     z = 0.5 .* (z₋ₕ[1:nzg] .+ z₋ₕ[2:nzg+1]) # 层中心深度, z 
     Δz₊ₕ = zeros(Float64, nzg)
-
     for k in 2:nzg
         Δz₊ₕ[k] = z[k] - z[k-1] # 两层之间的中心位置
     end
@@ -74,29 +85,30 @@ function soilfluxes(
 
 
     pet_s_actual = θ[nzg] <= θ_cp ? 0.0 : pet_s
-    Q[nzg+1] = (-precip + pet_s_actual) * 1.0e-3 - flood
+    Q[nzg+1] = (-precip + pet_s_actual) * 1.0e-3 - flood # [m], 
 
+    Imax = soil_params.Ksat * dt
     # 检查入渗能力
-    if -Q[nzg+1] > soil_params.Ksat * dt
-        runoff = -Q[nzg+1] - soil_params.Ksat * dt
-        Q[nzg+1] = -soil_params.Ksat * dt
+    if -Q[nzg+1] > Imax
+        runoff = -Q[nzg+1] - Imax
+        Q[nzg+1] = -Imax
     end
 
     # 确定地下水位位置
     if !freedrain
-        iwtd = 1
+        jwt = 1
         for k in 1:nzg
             if wtd < z₋ₕ[k]
-                iwtd = k # 地下水水位所在层
+                jwt = k # 地下水水位所在的上一层
                 break
             end
         end
     else
-        iwtd = 0
+        jwt = 0
     end
 
     # 计算中间层的导水率和扩散率
-    for k in max(iwtd - 1, 2):nzg
+    for k in max(jwt - 1, 2):nzg
         θmid = θ[k] + (θ[k] - θ[k-1]) * (z₋ₕ[k] - z[k]) / Δz₊ₕ[k] # 边界处θ
 
         # 获取土壤参数
@@ -123,7 +135,7 @@ function soilfluxes(
     cc = zeros(Float64, nzg)
     rr = zeros(Float64, nzg)
 
-    for k in max(iwtd, 3):(nzg-1)
+    for k in max(jwt, 3):(nzg-1)
         aa[k] = D_mid[k] / Δz₊ₕ[k]
         cc[k] = D_mid[k+1] / Δz₊ₕ[k+1]
         bb[k] = -(aa[k] + cc[k] + Δz[k] / dt)
@@ -131,7 +143,7 @@ function soilfluxes(
     end
 
     # 顶部边界条件
-    if iwtd - 1 == nzg
+    if jwt - 1 == nzg # 若地下水没过地表, Q_k-1近似重力排水
         aa[nzg] = 0.0
         cc[nzg] = 0.0
         bb[nzg] = -Δz[nzg] / dt
@@ -146,7 +158,7 @@ function soilfluxes(
 
     # 底部边界条件
     if !freedrain # 非自由排水
-        if iwtd <= 2
+        if jwt <= 2
             aa[1] = 0.0
             cc[1] = D_mid[2] / Δz₊ₕ[2]
             bb[1] = -(cc[1] + Δz[1] / dt)
@@ -165,14 +177,14 @@ function soilfluxes(
             end
         else
             # 其他层保持不变
-            for k in 1:(iwtd-3)
+            for k in 1:(jwt-3)
                 aa[k] = 0.0
                 cc[k] = 0.0
                 bb[k] = 1.0
                 rr[k] = θ[k]
             end
 
-            k = iwtd - 1  # 地下水位层
+            k = jwt - 1  # 地下水位层
             aa[k] = 0.0
             if k < nzg
                 cc[k] = D_mid[k+1] / Δz₊ₕ[k+1]
@@ -186,7 +198,7 @@ function soilfluxes(
                         min(K_mid[k] + D_mid[k] / Δz₊ₕ[k] * (θ[k] - θ[k-1]), 0.0)
             end
 
-            k = iwtd - 2
+            k = jwt - 2
             aa[k] = 0.0
             cc[k] = 0.0
             bb[k] = -Δz[k] / dt
@@ -200,7 +212,6 @@ function soilfluxes(
         smoisat = soil_params.θ_sat * max(min(exp((z₋ₕ[1] + 1.5) / fdepth), 1.0), 0.1)
 
         K_mid[1] = K * (θ[1] / smoisat)^(2.0 * soil_params.b + 3.0)
-
         aa[1] = 0.0
         cc[1] = D_mid[2] / Δz₊ₕ[2]
         bb[1] = -(cc[1] + Δz[1] / dt)
@@ -211,13 +222,13 @@ function soilfluxes(
     tridag!(aa, bb, cc, rr, θ)
 
     # 计算通量
-    for k in max(iwtd, 3):nzg
+    for k in max(jwt, 3):nzg
         gravflux[k] = -K_mid[k] * dt
         capflux[k] = -aa[k] * (θ[k] - θ[k-1]) * dt
         Q[k] = capflux[k] + gravflux[k]
     end
 
-    if iwtd <= 2
+    if jwt <= 2
         capflux[1] = 0.0
         gravflux[1] = 0.0
         Q[1] = 0.0
@@ -225,13 +236,13 @@ function soilfluxes(
         capflux[2] = -aa[2] * (θ[2] - θ[1]) * dt
         Q[2] = capflux[2] + gravflux[2]
     else
-        for k in 1:(iwtd-2)
+        for k in 1:(jwt-2)
             capflux[k] = 0.0
             gravflux[k] = 0.0
             Q[k] = 0.0
         end
 
-        k = iwtd - 1
+        k = jwt - 1
         gravflux[k] = -K_mid[k] * dt
         capflux[k] = -D_mid[k] / Δz₊ₕ[k] * (θ_old[k] - θ_old[k-1]) * dt
 
@@ -247,16 +258,12 @@ function soilfluxes(
         end
     end
 
-    if freedrain == 0
-        Q[1] = 0.0
-    else
-        Q[1] = -K_mid[1] * dt
-    end
-
+    Q[1] = freedrain ? -K_mid[1] * dt : 0.0 # 为何乘dt ? 
+    
     # 重新计算土壤含水量
     θ .= θ_old
     for k in 1:nzg
-        θ_old[k] = θ_old[k] + (Q[k] - Q[k+1] - transp[k]) * inv_Δz[k]
+        θ_old[k] = θ_old[k] + (Q[k] - Q[k+1] - transp[k]) / Δz[k]
     end
 
     # 检查并修正土壤含水量边界
@@ -267,7 +274,7 @@ function soilfluxes(
         if θ_old[k] > smoisat
             dsmoi = max((θ_old[k] - smoisat) * Δz[k], 0.0)
             if k < nzg
-                θ_old[k+1] = θ_old[k+1] + dsmoi * inv_Δz[k+1]
+                θ_old[k+1] = θ_old[k+1] + dsmoi / Δz[k+1]
                 Q[k+1] = Q[k+1] + dsmoi
             else
                 Q[k+1] = Q[k+1] + dsmoi
@@ -305,7 +312,7 @@ function soilfluxes(
             θ_old[k] = θ_old[k] + max(Q[k+1], 0.0) / Δz[k]
 
             dsmoi = max((θ_cp - θ_old[k]) * Δz[k], 0.0)
-            θ_old[k-1] = θ_old[k-1] - dsmoi * inv_Δz[k-1]
+            θ_old[k-1] = θ_old[k-1] - dsmoi / Δz[k-1]
             Q[k] = Q[k] + dsmoi
             θ_old[k] = θ_cp
         end
@@ -319,7 +326,7 @@ function soilfluxes(
         if θ_old[k] < θ_cp
             dsmoi = max((θ_cp - θ_old[k]) * Δz[k], 0.0)
             if k > 1
-                θ_old[k-1] = θ_old[k-1] - dsmoi * inv_Δz[k-1]
+                θ_old[k-1] = θ_old[k-1] - dsmoi / Δz[k-1]
             end
             Q[k] = Q[k] + dsmoi
             θ_old[k] = θ_cp

@@ -1,4 +1,4 @@
 {
-  "julia.environmentPath": "ASAP-model", 
-  "editor.tabSize": 4
+    "editor.tabSize": 2,
+    "fortran.fortls.disabled": true
 }

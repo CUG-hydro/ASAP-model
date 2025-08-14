@@ -14,26 +14,26 @@
 - 128: 东北 (↗)
 """
 function flowdir(fd::Matrix{Int}, ii::Int, jj::Int)
-    # 确定j方向
-    j = if fd[ii, jj] in [2, 4, 8]
-        jj - 1
-    elseif fd[ii, jj] in [1, 16]
-        jj
-    elseif fd[ii, jj] in [32, 64, 128]
-        jj + 1
-    else
-        0
-    end
+  # 确定j方向
+  j = if fd[ii, jj] in [2, 4, 8]
+    jj - 1
+  elseif fd[ii, jj] in [1, 16]
+    jj
+  elseif fd[ii, jj] in [32, 64, 128]
+    jj + 1
+  else
+    0
+  end
 
-    # 确定i方向
-    i = if fd[ii, jj] in [128, 1, 2]
-        ii + 1
-    elseif fd[ii, jj] in [4, 64]
-        ii
-    elseif fd[ii, jj] in [8, 16, 32]
-        ii - 1
-    else
-        0
-    end
-    return i, j
+  # 确定i方向
+  i = if fd[ii, jj] in [128, 1, 2]
+    ii + 1
+  elseif fd[ii, jj] in [4, 64]
+    ii
+  elseif fd[ii, jj] in [8, 16, 32]
+    ii - 1
+  else
+    0
+  end
+  return i, j
 end
