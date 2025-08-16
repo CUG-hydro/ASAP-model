@@ -2,21 +2,24 @@
     rivers_kw_flood!(运动波河流洪水路由参数...)
 
 使用运动波方程进行河流洪水路由计算
+
+# Arguments
+- `qrf`: runoff–fast/overland, 地表径流
+- `qs` : runoff–slow/subsurface, 地下径流
+- `delsfcwat`: Δ surface water storage to channel
 """
 function rivers_kw_flood!(
   imax::Int, jmax::Int, is::Int, ie::Int, js::Int, je::Int,
-  Δt::T, dt::T, 
+  Δt::T, δt::T, 
   fd::Matrix{Int}, bfd::Matrix{Int},
   qnew::M, qs::M, qrf::M,
-  delsfcwat::M, slope::M, depth::M,
-  width::M, length::M, maxdepth::M,
-  area::M, riverarea::M, floodarea::M,
-  riverchannel::M, qmean::M, floodheight::M,
-  topo::M
+  delsfcwat::M, depth::M,
+  riverarea::M, floodarea::M, floodheight::M,
+  width::M, length::M, maxdepth::M, slope::M, area::M, topo::M, riverchannel::M, # 静态变量
+  qmean::M,
 ) where {T<:AbstractFloat,M<:Matrix{T}}
-  # 计算外部输入流量
-  qext = zeros(size(qnew))
-
+  
+  qext = zeros(size(qnew)) # 计算外部输入流量
   for j in max(js + 1, 2):min(je - 1, jmax - 1)
     for i in max(is + 1, 2):min(ie - 1, imax - 1)
       if fd[i, j] != 0
@@ -42,12 +45,12 @@ function rivers_kw_flood!(
     for i in max(is + 1, 2):min(ie - 1, imax - 1)
       fd[i, j] == 0 && continue
 
-      dsnew = qin[i, j] - q[i, j]  # 计算流入该网格的总流量变化
+      dsnew = qin[i, j] - q[i, j]  # 计算流入该网格的总流量变化, [m3 s-1]
       dsnew = apply_specific_diversions(i, j, q, dsnew) # 添加特定河流分流(原始Fortran中的硬编码分流)
 
       # 新的河流存储量
       snew = depth[i, j] * riverarea[i, j] + floodheight[i, j] * floodarea[i, j] +
-             (dsnew + qext[i, j]) * dt
+             (dsnew + qext[i, j]) * δt
 
       # 在河道和洪泛区之间重新分配水量
       if snew >= riverchannel[i, j]
@@ -89,10 +92,10 @@ function rivers_kw_flood!(
     end
     R = A / (2.0 * depth[i, j] + width[i, j]) # 水力半径
     speed = (R^(2.0 / 3.0)) * sqrt(slope_inst) / 0.03
-    speed = clamp(speed, 0.01, length[i, j] / dt)
+    speed = clamp(speed, 0.01, length[i, j] / δt)
     qnew[i, j] = speed * A # 计算新流量
   end
 
-  qmean .+= qnew .* dt # 累积平均流量
+  qmean .+= qnew .* δt # 累积平均流量
   return nothing
 end
