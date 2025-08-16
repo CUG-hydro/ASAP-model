@@ -80,14 +80,14 @@ function soilfluxes(
     qgw = qlat - qrf
 
     # 顶部边界条件：入渗 + 土壤蒸发
-    soil_params = get_soil_params(soiltxt)
-    θ_cp = soil_params.θ_cp
+    soil = get_soil_params(soiltxt)
+    θ_cp = soil.θ_cp
 
 
     pet_s_actual = θ[nzg] <= θ_cp ? 0.0 : pet_s
     Q[nzg+1] = (-precip + pet_s_actual) * 1.0e-3 - flood # [m], 
 
-    Imax = soil_params.Ksat * dt
+    Imax = soil.Ksat * dt
     # 检查入渗能力
     if -Q[nzg+1] > Imax
         runoff = -Q[nzg+1] - Imax
@@ -112,12 +112,12 @@ function soilfluxes(
         θmid = θ[k] + (θ[k] - θ[k-1]) * (z₋ₕ[k] - z[k]) / Δz₊ₕ[k] # 边界处θ
 
         # 获取土壤参数
-        soil_params = get_soil_params(soiltxt)
-        (; Ksat, θ_sat, ψsat, b) = soil_params
+        soil = get_soil_params(soiltxt)
+        (; Ksat, θ_sat, ψsat, b) = soil
 
-        _Ksat = soil_params.Ksat * clamp(exp((z₋ₕ[k] + 1.5) / fdepth), 0.1, 1.0)
-        _θsat = soil_params.θ_sat * clamp(exp((z₋ₕ[k] + 1.5) / fdepth), 0.1, 1.0)
-        _ψsat = soil_params.ψsat * clamp(exp(-(z₋ₕ[k] + 1.5) / fdepth), 1.0, 10.0)
+        _Ksat = soil.Ksat * clamp(exp((z₋ₕ[k] + 1.5) / fdepth), 0.1, 1.0)
+        _θsat = soil.θ_sat * clamp(exp((z₋ₕ[k] + 1.5) / fdepth), 0.1, 1.0)
+        _ψsat = soil.ψsat * clamp(exp(-(z₋ₕ[k] + 1.5) / fdepth), 1.0, 10.0)
 
         θmid = min(θmid, _θsat)
 
@@ -207,11 +207,11 @@ function soilfluxes(
         end
     else
         # 重力排水边界
-        soil_params = get_soil_params(soiltxt)
-        K = soil_params.Ksat * max(min(exp((z₋ₕ[1] + 1.5) / fdepth), 1.0), 0.1)
-        smoisat = soil_params.θ_sat * max(min(exp((z₋ₕ[1] + 1.5) / fdepth), 1.0), 0.1)
+        soil = get_soil_params(soiltxt)
+        K = soil.Ksat * max(min(exp((z₋ₕ[1] + 1.5) / fdepth), 1.0), 0.1)
+        smoisat = soil.θ_sat * max(min(exp((z₋ₕ[1] + 1.5) / fdepth), 1.0), 0.1)
 
-        K_mid[1] = K * (θ[1] / smoisat)^(2.0 * soil_params.b + 3.0)
+        K_mid[1] = K * (θ[1] / smoisat)^(2.0 * soil.b + 3.0)
         aa[1] = 0.0
         cc[1] = D_mid[2] / Δz₊ₕ[2]
         bb[1] = -(cc[1] + Δz[1] / dt)
@@ -268,8 +268,8 @@ function soilfluxes(
 
     # 检查并修正土壤含水量边界
     for k in 1:nzg
-        soil_params = get_soil_params(soiltxt)
-        smoisat = soil_params.θ_sat * max(min(exp((z[k] + 1.5) / fdepth), 1.0), 0.1)
+        soil = get_soil_params(soiltxt)
+        smoisat = soil.θ_sat * max(min(exp((z[k] + 1.5) / fdepth), 1.0), 0.1)
 
         if θ_old[k] > smoisat
             dsmoi = max((θ_old[k] - smoisat) * Δz[k], 0.0)
@@ -296,8 +296,8 @@ function soilfluxes(
 
     # 处理最上层的干燥限制
     k = nzg
-    soil_params = get_soil_params(soiltxt)
-    θ_cp = soil_params.ρb * max(min(exp((z[k] + 1.5) / fdepth), 1.0), 0.1)
+    soil = get_soil_params(soiltxt)
+    θ_cp = soil.ρb * max(min(exp((z[k] + 1.5) / fdepth), 1.0), 0.1)
 
     et_s = pet_s
     if θ_old[k] < θ_cp
@@ -320,8 +320,8 @@ function soilfluxes(
 
     # 继续处理下层
     for k in (nzg-1):-1:1
-        soil_params = get_soil_params(soiltxt)
-        θ_cp = soil_params.ρb * max(min(exp((z[k] + 1.5) / fdepth), 1.0), 0.1)
+        soil = get_soil_params(soiltxt)
+        θ_cp = soil.ρb * max(min(exp((z[k] + 1.5) / fdepth), 1.0), 0.1)
 
         if θ_old[k] < θ_cp
             dsmoi = max((θ_cp - θ_old[k]) * Δz[k], 0.0)

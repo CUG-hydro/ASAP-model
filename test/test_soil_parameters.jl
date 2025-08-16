@@ -1,12 +1,12 @@
 # 测试获取土壤参数
 @testset "获取土壤参数" begin
-    soil_params = get_soil_params(1)
-    @test soil_params.slmsts ≈ 0.395
-    @test soil_params.soilcp ≈ 0.050
-    @test soil_params.slbs ≈ 4.05
-    @test soil_params.slcons ≈ 0.000176
-    @test soil_params.slpots ≈ -0.121
-    @test soil_params.klatfactor ≈ 2.0
+    soil = get_soil_params(1)
+    @test soil.slmsts ≈ 0.395
+    @test soil.soilcp ≈ 0.050
+    @test soil.slbs ≈ 4.05
+    @test soil.slcons ≈ 0.000176
+    @test soil.slpots ≈ -0.121
+    @test soil.klatfactor ≈ 2.0
 
     # 测试边界条件
     @test_throws BoundsError get_soil_params(0)

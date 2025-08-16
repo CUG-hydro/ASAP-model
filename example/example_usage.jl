@@ -15,11 +15,11 @@ println("=" ^ 40)
 println("\n1. 土壤参数模块示例:")
 println("-" ^ 20)
 soil_type = 5  # 第5种土壤类型
-soil_params = get_soil_params(soil_type)
+soil = get_soil_params(soil_type)
 println("土壤类型 $soil_type 的参数:")
-println("  饱和含水量: $(soil_params.slmsts)")
-println("  饱和导水率: $(soil_params.slcons)")
-println("  土壤b参数: $(soil_params.slbs)")
+println("  饱和含水量: $(soil.slmsts)")
+println("  饱和导水率: $(soil.slcons)")
+println("  土壤b参数: $(soil.slbs)")
 
 # 计算导水率
 smoi = 0.3  # 当前含水量

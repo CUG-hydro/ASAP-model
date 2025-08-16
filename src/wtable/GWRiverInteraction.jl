@@ -27,41 +27,34 @@ function gw2river!(
 
   for j in (js+1):(je-1)
     for i in max(is + 1, 2):min(ie - 1, imax - 1)
-      if landmask[i, j] == 0 || width[i, j] == 0.0
-        continue
-      end
+      landmask[i, j] == 0 || width[i, j] == 0.0 && continue
 
-      rdepth = max(riverdepth[i, j], 0.0)
+      rdepth = max(riverdepth[i, j], 0.0)        # 河深
+      riversurface = -(maxdepth[i, j] - rdepth)  # 河面高程，相对于fullbank
+      riversurface >= 0.0 && continue
+
       nsoil = soiltxt[2, i, j]
-      soil_params = get_soil_params(nsoil)
+      soil = get_soil_params(nsoil)
 
-      riversurface = -(maxdepth[i, j] - rdepth)
+      # Miguez-Macho, 2007, Eq. 2d, 注意这里未做积分, 认为dl = dh
+      # 这里做了很多简化, 理论情况只有losing river适用该公式
+      K_rb = soil.Ksat * clamp(exp((-maxdepth[i, j] + 1.5) / fdepth[i, j]), 0.1, 1.0) # river bed
+      rcond = width[i, j] * length[i, j] * K_rb
 
-      if riversurface >= 0.0
-        continue  # 安全检查
-      end
-
-      if wtd[i, j] > riversurface
-        # 地下水位高于河流水面，向河流排水
-        hydcon = soil_params.Ksat * max(min(exp((-maxdepth[i, j] + 1.5) / fdepth[i, j]), 1.0), 0.1)
-        rcond = width[i, j] * length[i, j] * hydcon
+      if wtd[i, j] > riversurface # 地下水位高于河流水面，向河流排水
         qrf[i, j] = rcond * (wtd[i, j] - riversurface) * (Δt / area[i, j])
-
         # 限制突然下降，最大50mm/day
         qrf[i, j] = min(qrf[i, j], Δt * 0.05 / 86400.0)
 
-      elseif wtd[i, j] > -maxdepth[i, j]
-        # 水位与河流连接但低于河流水面
-        hydcon = soil_params.Ksat * max(min(exp((-maxdepth[i, j] + 1.5) / fdepth[i, j]), 1.0), 0.1)
-        rcond = width[i, j] * length[i, j] * hydcon
+      elseif wtd[i, j] > -maxdepth[i, j]  # 水位与河流连接但低于河流水面, 反向river补给GW
+        soilwatercap = -rcond * (wtd[i, j] - riversurface) * (Δt / area[i, j]) # 负号为了将其转换为正的数值
 
-        soilwatercap = -rcond * (wtd[i, j] - riversurface) * (Δt / area[i, j])
         soilwatercap = min(soilwatercap, Δt * 0.05 / 86400.0)
         qrf[i, j] = -max(min(soilwatercap, riverdepth[i, j]), 0.0) *
                     min(width[i, j] * length[i, j] / area[i, j], 1.0)
       else
         # 水位在河床以下，断开连接，仅渗透
-        qrf[i, j] = -max(min(soil_params.Ksat * Δt, rdepth), 0.0) *
+        qrf[i, j] = -max(min(soil.Ksat * Δt, rdepth), 0.0) *
                     min(width[i, j] * length[i, j] / area[i, j], 1.0)
       end
     end
@@ -163,21 +156,21 @@ function rivers_kw_flood!(
               i2, j2 = flowdir(bfd, i, j)
               waterelevi2j2 = topo[i2, j2] - maxdepth[i2, j2] + max(depth[i2, j2], 0.0)
               slopeback = (waterelevi2j2 - waterelevij) / (0.5 * (length[i2, j2] + length[i, j]))
-              slopeinst = 0.5 * (slopefor + slopeback)
+              slope_inst = 0.5 * (slopefor + slopeback)
             else
-              slopeinst = slopefor
+              slope_inst = slopefor
             end
 
-            slopeinst = 0.25 * slopeinst + 0.75 * slope[i, j]
-            if slopeinst < 0.0
-              slopeinst = slope[i, j]
+            slope_inst = 0.25 * slope_inst + 0.75 * slope[i, j]
+            if slope_inst < 0.0
+              slope_inst = slope[i, j]
             end
 
-            speed = (aa^(2.0 / 3.0)) * sqrt(slopeinst) / 0.03
+            speed = (aa^(2.0 / 3.0)) * sqrt(slope_inst) / 0.03
             speed = max(min(speed, length[i, j] / dtlr), 0.01)
           else
-            slopeinst = slope[i, j]
-            speed = (aa^(2.0 / 3.0)) * sqrt(slopeinst) / 0.03
+            slope_inst = slope[i, j]
+            speed = (aa^(2.0 / 3.0)) * sqrt(slope_inst) / 0.03
             speed = max(min(speed, length[i, j] / dtlr), 0.01)
           end
         else
@@ -194,9 +187,9 @@ function rivers_kw_flood!(
 
   # 累积平均流量
   qmean .+= qnew .* dtlr
-
   return nothing
 end
+
 
 """
     rivers_dw_flood!(扩散波河流洪水路由参数...)
@@ -323,6 +316,7 @@ function rivers_dw_flood!(
   return nothing
 end
 
+
 """
     flooding!(洪水漫流参数...)
 
@@ -397,9 +391,9 @@ function flooding!(
     delsfcwat .+= dflood
     dflood .= 0.0
   end
-
   return nothing
 end
+
 
 """
     moveqrf!(移动河流-地下水通量参数...)
@@ -423,10 +417,8 @@ function moveqrf!(
       end
     end
   end
-
   # 应用额外通量
   qrf .+= qrfextra
-
   return nothing
 end
 

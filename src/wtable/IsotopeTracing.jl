@@ -32,8 +32,8 @@ function lateral_isotope!(
   for j in max(js, 1):min(je, jmax)
     for i in max(is, 1):min(ie, imax)
       nsoil = soiltxt[1, i, j]
-      soil_params = get_soil_params(nsoil)
-      κlat[i, j] = soil_params.Ksat * soil_params.K_latfactor
+      soil = get_soil_params(nsoil)
+      κlat[i, j] = soil.Ksat * soil.K_latfactor
 
       # 确定水位所在层的同位素浓度
       k = 1
@@ -114,8 +114,7 @@ function lateralflow_with_isotope!(
         qouto18 = 0.0
 
         # 北方向流量
-        qn = (κcell[i, j+1] + κcell[i, j]) * (head[i, j+1] - head[i, j]) *
-             cos(π2r * (lats[i, j] + 0.5 * dxy))
+        qn = (κcell[i, j+1] + κcell[i, j]) * (head[i, j+1] - head[i, j]) * cos(π2r * (lats[i, j] + 0.5 * dxy))
 
         if qn > 0.0
           qno18 = qn * o18wtd[i, j+1]
@@ -128,8 +127,7 @@ function lateralflow_with_isotope!(
         end
 
         # 南方向流量
-        qs = (κcell[i, j-1] + κcell[i, j]) * (head[i, j-1] - head[i, j]) *
-             cos(π2r * (lats[i, j] - 0.5 * dxy))
+        qs = (κcell[i, j-1] + κcell[i, j]) * (head[i, j-1] - head[i, j]) * cos(π2r * (lats[i, j] - 0.5 * dxy))
 
         if qs > 0.0
           qso18 = qs * o18wtd[i, j-1]
@@ -142,8 +140,7 @@ function lateralflow_with_isotope!(
         end
 
         # 西方向流量
-        qw = (κcell[i-1, j] + κcell[i, j]) * (head[i-1, j] - head[i, j]) /
-             cos(π2r * lats[i, j])
+        qw = (κcell[i-1, j] + κcell[i, j]) * (head[i-1, j] - head[i, j]) / cos(π2r * lats[i, j])
 
         if qw > 0.0
           qwo18 = qw * o18wtd[i-1, j]
@@ -156,8 +153,7 @@ function lateralflow_with_isotope!(
         end
 
         # 东方向流量
-        qe = (κcell[i+1, j] + κcell[i, j]) * (head[i+1, j] - head[i, j]) /
-             cos(π2r * lats[i, j])
+        qe = (κcell[i+1, j] + κcell[i, j]) * (head[i+1, j] - head[i, j]) / cos(π2r * lats[i, j])
 
         if qe > 0.0
           qeo18 = qe * o18wtd[i+1, j]
@@ -212,31 +208,31 @@ function updatedeepwtable!(
         if wtd[i, j] < slz[1] - dz[1]
           # 计算排水导水率
           nsoil = soiltxt[1, i, j]
-          soil_params = get_soil_params(nsoil)
+          soil = get_soil_params(nsoil)
 
-          wgpmid = 0.5 * (smoiwtd[i, j] + soil_params.θ_sat)
-          kfup = soil_params.Ksat *
-                 (wgpmid / soil_params.θ_sat)^(2.0 * soil_params.b + 3.0)
+          wgpmid = 0.5 * (smoiwtd[i, j] + soil.θ_sat)
+          kfup = soil.Ksat *
+                 (wgpmid / soil.θ_sat)^(2.0 * soil.b + 3.0)
 
           # 计算湿度势
-          vt3dbdw = soil_params.ψsat *
-                    (soil_params.θ_sat / smoiwtd[i, j])^soil_params.b
+          vt3dbdw = soil.ψsat *
+                    (soil.θ_sat / smoiwtd[i, j])^soil.b
 
           # 计算通量(=补给)
           deeprech[i, j] = Δt * kfup *
-                           ((soil_params.ψsat - vt3dbdw) / (slz[1] - wtd[i, j]) - 1.0)
+                           ((soil.ψsat - vt3dbdw) / (slz[1] - wtd[i, j]) - 1.0)
 
           # 更新水位处土壤湿度
           newwgp = smoiwtd[i, j] + (deeprech[i, j] - bottomflux[i, j]) / (slz[1] - wtd[i, j])
 
-          if newwgp < soil_params.θ_cp
-            deeprech[i, j] += (soil_params.θ_cp - newwgp) * (slz[1] - wtd[i, j])
-            newwgp = soil_params.θ_cp
+          if newwgp < soil.θ_cp
+            deeprech[i, j] += (soil.θ_cp - newwgp) * (slz[1] - wtd[i, j])
+            newwgp = soil.θ_cp
           end
 
-          if newwgp > soil_params.θ_sat
-            deeprech[i, j] -= (soil_params.θ_sat - newwgp) * (slz[1] - wtd[i, j])
-            newwgp = soil_params.θ_sat
+          if newwgp > soil.θ_sat
+            deeprech[i, j] -= (soil.θ_sat - newwgp) * (slz[1] - wtd[i, j])
+            newwgp = soil.θ_sat
           end
 
           smoiwtd[i, j] = newwgp
@@ -296,13 +292,13 @@ function updatewtd_simple(
     if totwater > 0.0
       # 水位上升
       nsoil = soiltextures[1]
-      soil_params = get_soil_params(nsoil)
+      soil = get_soil_params(nsoil)
 
       if wtd < slz[1] - dz[1]
         # 深部水位上升
-        maxwatup = (soil_params.θ_sat - smoiwtd) * (slz[1] - dz[1] - wtd)
+        maxwatup = (soil.θ_sat - smoiwtd) * (slz[1] - dz[1] - wtd)
         if totwater <= maxwatup
-          new_wtd = wtd + totwater / (soil_params.θ_sat - smoiwtd)
+          new_wtd = wtd + totwater / (soil.θ_sat - smoiwtd)
         else
           new_wtd = slz[1] - dz[1]
           new_qspring = totwater - maxwatup
@@ -313,23 +309,23 @@ function updatewtd_simple(
     else
       # 水位下降
       nsoil = soiltextures[1]
-      soil_params = get_soil_params(nsoil)
+      soil = get_soil_params(nsoil)
 
       if wtd >= slz[1] - dz[1]
         # 在土壤层附近
-        maxwatdw = dz[1] * (smoiwtd - soil_params.θ_cp)
+        maxwatdw = dz[1] * (smoiwtd - soil.θ_cp)
         if -totwater <= maxwatdw
           new_smoiwtd = smoiwtd + totwater / dz[1]
         else
-          new_wtd = wtd + totwater / (soil_params.θ_sat - soil_params.θ_cp)
+          new_wtd = wtd + totwater / (soil.θ_sat - soil.θ_cp)
         end
       else
         # 深部水位下降
-        wgpmid = soil_params.θ_sat *
-                 (soil_params.ψsat / (soil_params.ψsat - (slz[1] - wtd)))^(1.0 / soil_params.b)
-        wgpmid = max(wgpmid, soil_params.θ_cp)
+        wgpmid = soil.θ_sat *
+                 (soil.ψsat / (soil.ψsat - (slz[1] - wtd)))^(1.0 / soil.b)
+        wgpmid = max(wgpmid, soil.θ_cp)
 
-        syielddw = soil_params.θ_sat - wgpmid
+        syielddw = soil.θ_sat - wgpmid
         new_wtd = wtd + totwater / syielddw
       end
     end

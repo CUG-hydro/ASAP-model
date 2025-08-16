@@ -94,14 +94,14 @@ function extraction(i::Int, j::Int, nzg::Int, slz::Vector{Float64}, dz::Vector{F
         vctr4_k = 0.5 * (slz[k] + slz[k+1])
 
         # 获取土壤参数
-        soil_params = get_soil_params(soiltxt)
+        soil = get_soil_params(soiltxt)
 
         # 计算饱和含水量和饱和基质势（考虑深度变化）
-        smoisat = soil_params.θ_sat * max(min(exp((vctr4_k + 1.5) / fdepth), 1.0), 0.1)
-        psisat = soil_params.ψsat * min(max(exp(-(vctr4_k + 1.5) / fdepth), 1.0), 10.0)
+        smoisat = soil.θ_sat * max(min(exp((vctr4_k + 1.5) / fdepth), 1.0), 0.1)
+        psisat = soil.ψsat * min(max(exp(-(vctr4_k + 1.5) / fdepth), 1.0), 10.0)
 
         # 计算土壤水势
-        pot = psisat * (smoisat / smoi[k])^soil_params.b        # 考虑冰冻因子
+        pot = psisat * (smoisat / smoi[k])^soil.b        # 考虑冰冻因子
         soilfactor = icefac[k] == 0 ? 1.0 : 0.0
 
         # 计算水分提取便利性
@@ -158,13 +158,13 @@ function extraction(i::Int, j::Int, nzg::Int, slz::Vector{Float64}, dz::Vector{F
 
     for k in max(kwtd, 1):nzg
         vctr4_k = 0.5 * (slz[k] + slz[k+1])
-        soil_params = get_soil_params(soiltxt)
+        soil = get_soil_params(soiltxt)
 
-        smoisat = soil_params.θ_sat * max(min(exp((vctr4_k + 1.5) / fdepth), 1.0), 0.1)
-        psisat = soil_params.ψsat * min(max(exp(-(vctr4_k + 1.5) / fdepth), 1.0), 10.0)
+        smoisat = soil.θ_sat * max(min(exp((vctr4_k + 1.5) / fdepth), 1.0), 0.1)
+        psisat = soil.ψsat * min(max(exp(-(vctr4_k + 1.5) / fdepth), 1.0), 10.0)
 
-        smoimin = smoisat * (psisat / POTWILT)^(1.0 / soil_params.b)
-        smoifc = smoisat * (psisat / POTFC)^(1.0 / soil_params.b)
+        smoimin = smoisat * (psisat / POTWILT)^(1.0 / soil.b)
+        smoifc = smoisat * (psisat / POTFC)^(1.0 / soil.b)
 
         maxwat[k] = max((smoi[k] - smoimin) * dz[k], 0.0)
         rootsmoi += max(rootactivity[k] * (smoi[k] - smoimin), 0.0)
@@ -183,8 +183,8 @@ function extraction(i::Int, j::Int, nzg::Int, slz::Vector{Float64}, dz::Vector{F
     # 计算冠层和土壤阻力
     rs_c = fswp == 0.0 ? 5000.0 : min(rs_c_factor / fswp, 5000.0)
 
-    soil_params = get_soil_params(soiltxt)
-    rs_s = 33.5 + 3.5 * (soil_params.θ_sat / smoi[nzg])^2.38
+    soil = get_soil_params(soiltxt)
+    rs_s = 33.5 + 3.5 * (soil.θ_sat / smoi[nzg])^2.38
 
     R_c = (δ + γ) * ra_c + γ * rs_c
     R_s_final = R_s + γ * rs_s

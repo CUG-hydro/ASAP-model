@@ -47,10 +47,10 @@ using ASAP, Test
     @test length(flux) == nzg + 1  # 通量长度正确
 
     # 检查土壤含水量在合理范围内
-    soil_params = get_soil_params(soiltxt)
+    soil = get_soil_params(soiltxt)
     for k in 1:nzg
         @test θ_new[k] >= 0.0  # 含水量非负
-        @test θ_new[k] <= soil_params.θ_sat * 1.1  # 不超过饱和含水量太多
+        @test θ_new[k] <= soil.θ_sat * 1.1  # 不超过饱和含水量太多
     end
 
     # 检查同位素值非负
@@ -338,8 +338,8 @@ end
     @test et_s <= pet_s
 
     # 测试饱和条件
-    soil_params = get_soil_params(soiltxt)
-    θ_sat = fill(soil_params.θ_sat, nzg)
+    soil = get_soil_params(soiltxt)
+    θ_sat = fill(soil.θ_sat, nzg)
     et_s2, runoff2, _, _, _, _, θ_new2, _ =
         soilfluxes(nzg, freedrain, dtll, slz, dz, soiltxt,
             smoiwtd, transp, transpdeep, θ_sat, wtd, 50.0, pet_s,
