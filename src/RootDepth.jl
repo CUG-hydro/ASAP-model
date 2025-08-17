@@ -103,7 +103,7 @@ function rootdepth_main(
   intercepstore::M, ppacum::M,
   pInfiltDepth::M, pInfiltDepthK_old::Matrix{Int8}, qlat::M,
   qlatsum::M, qsprings::M, inactivedays::Array{Int,3},
-  maxinactivedays::Int, fieldcp::M, fdepth::M,
+  maxinactivedays::Int, fdepth::M,
   steps::Float64, floodheight::M, qrf::M,
   delsfcwat::M, icefactor::Array{Int8,3}, wtdflux::M,
   et_s_daily::M, et_c_daily::M, transptop::M,
@@ -120,10 +120,8 @@ function rootdepth_main(
   # 主循环
   for j in (js+1):(je-1)
     for i in (is+1):(ie-1)
-      if landmask[i, j] == 0
-        continue
-      end
-
+      landmask[i, j] == 0 && continue
+      
       # 复制冰冻因子
       icefac[26:40] .= icefactor[i, j, 26:40]
 
@@ -131,7 +129,7 @@ function rootdepth_main(
       floodflag = floodheight[i, j] > 0.05 ? 1 : 0
 
       # 计算 Shuttleworth-Wallace 蒸散发
-      δ, γ, λ, ra_a, ra_c, rs_c, R_a, R_s, petfactor_s, petfactor_c, petstep_w, petstep_i =
+      Δ, γ, λ, ra_a, ra_c, rs_c, R_a, R_s, petfactor_s, petfactor_c, petstep_w, petstep_i =
         potevap_shutteworth_wallace(Δt, temp[i, j], netrad[i, j], rshort[i, j],
           press[i, j], qair[i, j], wind[i, j], lai[i, j],
           veg[i, j], hveg[i, j], floodflag)
@@ -143,10 +141,8 @@ function rootdepth_main(
       end
 
       # 如果是水体或裸地，跳过植被相关计算
-      if round(Int, veg[i, j]) <= 1
-        continue
-      end
-
+      round(Int, veg[i, j]) <= 1 && continue
+      
       # 植被截留计算
       ppdrip, etstep_i, new_intercepstore = interception(precip[i, j], lai[i, j],
         intercepstore[i, j], petstep_i)
@@ -159,8 +155,8 @@ function rootdepth_main(
       ppdrip_step = ppdrip / steps  # mm
       floodstep = floodheight[i, j] / steps  # m
       qlatstep = qlat[i, j] / steps  # m
-      qlato18step = qlato18[i, j] / steps  # m
       qrfstep = qrf[i, j] / steps  # m
+      qlato18step = qlato18[i, j] / steps  # m
 
       # 初始化通量数组
       flux = zeros(Float64, nzg + 1)
@@ -172,9 +168,11 @@ function rootdepth_main(
       for itime in 1:round(Int, steps)
         # 水分提取计算
         pet_s, pet_c, watdef, dθ, dsmoideep = extraction(nzg, z₋ₕ, dz, Δt / steps,
-          soiltxt[1, i, j], wtd[i, j], θ[:, i, j], θ_wtd[i, j], δ, γ, λ, lai[i, j],
-          ra_a, ra_c, rs_c, R_a, R_s, petfactor_s, petfactor_c, inactivedays[:, i, j],
-          maxinactivedays, fieldcp, hveg[i, j], fdepth[i, j], icefac)
+          soiltxt[1, i, j], 
+          wtd[i, j], θ[:, i, j], θ_wtd[i, j], 
+          Δ, γ, λ, lai[i, j],
+          ra_a, ra_c, rs_c, R_a, R_s, petfactor_s, petfactor_c, 
+          inactivedays[:, i, j], maxinactivedays, hveg[i, j], fdepth[i, j], icefac)
 
         # 更新蒸腾和水分不足量
         et_c[i, j] += pet_c - watdef * 1.0e3
@@ -194,8 +192,6 @@ function rootdepth_main(
           )
         # θ_eq[:, i, j], o18[:, i, j], o18ratiopp[i, j], tempsfc[i, j],
         # qlato18step, transpo18step
-
-
 
         # 更新状态变量
         delsfcwat[i, j] -= max(floodstep - runoff, 0.0)  # m

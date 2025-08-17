@@ -6,7 +6,7 @@ module ASAP
 
 using Reexport
 
-# 导入所有子模块
+include("helper.jl")
 include("SoilParameters.jl")
 include("Evapotranspiration.jl")
 include("Interception.jl")

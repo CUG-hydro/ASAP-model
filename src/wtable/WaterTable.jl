@@ -11,11 +11,15 @@ include("wtable.jl")
 include("lateral_flow.jl")
 include("GWRiverInteraction.jl")
 
+include("rivers_dw_flood.jl")
+include("rivers_kw_flood.jl")
+
 include("IsotopeTracing.jl")
 
 export flowdir
 export wtable!, updatewtd!, lateral_flow!,
-    gw2river!, rivers_kw_flood!, rivers_dw_flood!, flooding!, moveqrf!,         # 河流-地下水相互作用
-    lateral_isotope!, updatedeepwtable!              # 同位素追踪
+  gw2river!,
+  rivers_kw_flood!, rivers_dw_flood!, flooding!, moveqrf!,         # 河流-地下水相互作用
+  lateral_isotope!, updatedeepwtable!              # 同位素追踪
 
 end # module

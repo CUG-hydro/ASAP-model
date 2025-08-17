@@ -82,9 +82,7 @@ function flooding!(
   for n in 1:ntsplit
     for j in max(js + 1, 2):min(je - 1, jmax - 1)
       for i in max(is + 1, 2):min(ie - 1, imax - 1)
-        if fd[i, j] == 0
-          continue
-        end
+        fd[i, j] == 0 && continue
 
         if floodheight[i, j] > 0.05
           # 找到最低高程的邻居
@@ -92,22 +90,18 @@ function flooding!(
           ilow = i
           jlow = j
 
-          for jj in (j-1):(j+1)
-            for ii in (i-1):(i+1)
-              if ii == i && jj == j
-                continue
-              end
+          for jj in (j-1):(j+1), ii in (i-1):(i+1)
+            ii == i && jj == j && continue
 
-              dh = floodheight[i, j] + topo[i, j] - (floodheight[ii, jj] + topo[ii, jj])
-              if ii != i && jj != j
-                dh /= sqrt(2.0)  # 对角线距离调整
-              end
+            dh = floodheight[i, j] + topo[i, j] - (floodheight[ii, jj] + topo[ii, jj])
+            if ii != i && jj != j
+              dh /= sqrt(2.0)  # 对角线距离调整
+            end
 
-              if dh > dhmax
-                ilow = ii
-                jlow = jj
-                dhmax = dh
-              end
+            if dh > dhmax
+              ilow = ii
+              jlow = jj
+              dhmax = dh
             end
           end
 
@@ -154,15 +148,12 @@ function moveqrf!(
 ) where {T<:AbstractFloat,M<:Matrix{T}}
   qrfextra = zeros(size(qrf))
 
-  for j in (js+1):(je-1)
-    for i in 2:(imax-1)
-      if fd[i, j] > 0
-        if width[i, j] < 1.0
-          iout, jout = flowdir(fd, i, j)
-          qrfextra[iout, jout] += qrf[i, j] * area[i, j] / area[iout, jout]
-          qrf[i, j] = 0.0
-        end
-      end
+  for j in (js+1):(je-1), i in 2:(imax-1)
+    fd[i, j] == 0 && continue
+    if width[i, j] < 1.0
+      iout, jout = flowdir(fd, i, j)
+      qrfextra[iout, jout] += qrf[i, j] * area[i, j] / area[iout, jout]
+      qrf[i, j] = 0.0
     end
   end
   # 应用额外通量

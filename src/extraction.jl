@@ -9,7 +9,6 @@ const POTFC = -3.366    # 田间持水量水势 (m)
 从土壤层中提取水分用于蒸腾
 
 # 参数
-- `i::Int`, `j::Int`: 网格坐标
 - `nzg::Int`: 土壤层数
 - `slz::Vector{Float64}`: 土壤层深度 (m) [nzg+1]
 - `dz::Vector{Float64}`: 土壤层厚度 (m) [nzg]
@@ -42,7 +41,6 @@ function extraction(
   lai::Float64, ra_a::Float64, ra_c::Float64, rs_c_factor::Float64,
   R_a::Float64, R_s::Float64, petfactor_s::Float64, petfactor_c::Float64,
   inactivedays::Vector{Int}, maxinactivedays::Int,
-  fieldcp::Matrix{Float64},
   hhveg::Float64, fdepth::Float64, icefac::Vector{Int8})
 
   hveg = 2 / 3 * hhveg # 叶片高度
@@ -51,18 +49,12 @@ function extraction(
   dz2 = copy(dz)
 
   # 计算地下水位所在层
-  iwtd = 1
-  for k in 1:nzg
-    if wtd < z₋ₕ[k]
-      iwtd = k
-      break
-    end
-  end
-  kwtd = iwtd - 1 # 地下水所在层
+  jwt = find_jwt(wtd, z₋ₕ)  # 地下水所在的下一层
+  kwtd = jwt - 1           # 地下水所在层
 
   # 调整地下水位层厚度
   if kwtd >= 1 && kwtd < nzg
-    dz2[kwtd] = z₋ₕ[iwtd] - wtd  # 非饱和层厚度, 
+    dz2[kwtd] = z₋ₕ[jwt] - wtd  # 非饱和层厚度, 
   end
 
   # 计算根系最低层

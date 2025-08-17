@@ -80,9 +80,7 @@ function potevap_priestly_taylor(tempk::Float64, rad::Float64, presshp::Float64)
   γ = (CP_LOCAL * presskp) / (0.622 * λ)
 
   pet = α * rad_mj * Δ / (Δ + γ)
-  pet = pet / λ
-
-  return pet
+  return pet / λ
 end
 
 """
