@@ -209,9 +209,9 @@ function soilfluxes(
     # 重力排水边界
     soil = get_soil_params(soiltxt)
     K = soil.Ksat * max(min(exp((z₋ₕ[1] + 1.5) / fdepth), 1.0), 0.1)
-    smoisat = soil.θ_sat * max(min(exp((z₋ₕ[1] + 1.5) / fdepth), 1.0), 0.1)
+    θ_sat = soil.θ_sat * max(min(exp((z₋ₕ[1] + 1.5) / fdepth), 1.0), 0.1)
 
-    K_mid[1] = K * (θ[1] / smoisat)^(2.0 * soil.b + 3.0)
+    K_mid[1] = K * (θ[1] / θ_sat)^(2.0 * soil.b + 3.0)
     aa[1] = 0.0
     cc[1] = D_mid[2] / Δz₊ₕ[2]
     bb[1] = -(cc[1] + Δz[1] / dt)
@@ -269,24 +269,24 @@ function soilfluxes(
   # 检查并修正土壤含水量边界
   for k in 1:nzg
     soil = get_soil_params(soiltxt)
-    smoisat = soil.θ_sat * max(min(exp((z[k] + 1.5) / fdepth), 1.0), 0.1)
+    θ_sat = soil.θ_sat * max(min(exp((z[k] + 1.5) / fdepth), 1.0), 0.1)
 
-    if θ_old[k] > smoisat
-      dsmoi = max((θ_old[k] - smoisat) * Δz[k], 0.0)
+    if θ_old[k] > θ_sat
+      dθ = max((θ_old[k] - θ_sat) * Δz[k], 0.0)
       if k < nzg
-        θ_old[k+1] = θ_old[k+1] + dsmoi / Δz[k+1]
-        Q[k+1] = Q[k+1] + dsmoi
+        θ_old[k+1] = θ_old[k+1] + dθ / Δz[k+1]
+        Q[k+1] = Q[k+1] + dθ
       else
-        Q[k+1] = Q[k+1] + dsmoi
-        runoff = runoff + dsmoi
+        Q[k+1] = Q[k+1] + dθ
+        runoff = runoff + dθ
       end
-      θ_old[k] = smoisat
+      θ_old[k] = θ_sat
 
       if capflux[k+1] < 0.0
         gravflux[k+1] = gravflux[k+1] + capflux[k+1]
         capflux[k+1] = 0.0
       end
-      gravflux[k+1] = gravflux[k+1] + dsmoi
+      gravflux[k+1] = gravflux[k+1] + dθ
       if gravflux[k+1] > 0.0
         capflux[k+1] = capflux[k+1] + gravflux[k+1]
         gravflux[k+1] = 0.0
@@ -301,19 +301,19 @@ function soilfluxes(
 
   et_s = pet_s
   if θ_old[k] < θ_cp
-    dsmoi = max((θ_cp - θ_old[k]) * Δz[k], 0.0)
-    if Q[k+1] > dsmoi
-      et_s = max(0.0, pet_s - dsmoi * 1.0e3)
+    dθ = max((θ_cp - θ_old[k]) * Δz[k], 0.0)
+    if Q[k+1] > dθ
+      et_s = max(0.0, pet_s - dθ * 1.0e3)
       θ_old[k] = θ_cp
-      Q[k+1] = Q[k+1] - dsmoi
+      Q[k+1] = Q[k+1] - dθ
     else
       et_s = max(0.0, pet_s - max(Q[k+1], 0.0) * 1.0e3)
       Q[k+1] = min(Q[k+1], 0.0)
       θ_old[k] = θ_old[k] + max(Q[k+1], 0.0) / Δz[k]
 
-      dsmoi = max((θ_cp - θ_old[k]) * Δz[k], 0.0)
-      θ_old[k-1] = θ_old[k-1] - dsmoi / Δz[k-1]
-      Q[k] = Q[k] + dsmoi
+      dθ = max((θ_cp - θ_old[k]) * Δz[k], 0.0)
+      θ_old[k-1] = θ_old[k-1] - dθ / Δz[k-1]
+      Q[k] = Q[k] + dθ
       θ_old[k] = θ_cp
     end
   end
@@ -324,11 +324,11 @@ function soilfluxes(
     θ_cp = soil.ρb * max(min(exp((z[k] + 1.5) / fdepth), 1.0), 0.1)
 
     if θ_old[k] < θ_cp
-      dsmoi = max((θ_cp - θ_old[k]) * Δz[k], 0.0)
+      dθ = max((θ_cp - θ_old[k]) * Δz[k], 0.0)
       if k > 1
-        θ_old[k-1] = θ_old[k-1] - dsmoi / Δz[k-1]
+        θ_old[k-1] = θ_old[k-1] - dθ / Δz[k-1]
       end
-      Q[k] = Q[k] + dsmoi
+      Q[k] = Q[k] + dθ
       θ_old[k] = θ_cp
     end
   end
