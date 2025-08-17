@@ -88,200 +88,200 @@ rootdepth_main(freedrain, is, ie, js, je, nzg, slz_f32, ..., smoi_f32, ...)
 ```
 """
 function rootdepth_main(
-    freedrain::Int, is::Int, ie::Int, js::Int, je::Int, nzg::Int,
-    slz::V, dz::V, Δt::Float64,
-    landmask::Matrix{Int}, veg::M, hveg::M,
-    soiltxt::Array{Int,3}, wind::M, temp::M,
-    qair::M, press::M, netrad::M,
-    rshort::M, lai::M, precip::M,
-    qsrun::M, θ::A3, θ_eq::A3,
-    θ_wtd::M, wtd::M, waterdeficit::M,
-    watext::A3,
-    watextdeep::M, rech::M,
-    deeprech::M,
-    et_s::M, et_i::M, et_c::M,
-    intercepstore::M, ppacum::M,
-    pppendepth::M, pppendepthold::Matrix{Int8}, qlat::M,
-    qlatsum::M, qsprings::M, inactivedays::Array{Int,3},
-    maxinactivedays::Int, fieldcp::M, fdepth::M,
-    steps::Float64, floodheight::M, qrf::M,
-    delsfcwat::M, icefactor::Array{Int8,3}, wtdflux::M,
-    et_s_daily::M, et_c_daily::M, transptop::M,
-    infilk::Matrix{Int8}, infilflux::A3, infilfluxday::A3,
-    infilcounter::Array{Int16,3}, hour::Int,
-    o18::A3, o18ratiopp::M, tempsfc::M,
-    qlato18::M, transpo18::M, upflux::A3) where {
-    T<:Real,V<:Vector{T},M<:Matrix{T},A3<:Array{T,3}}
+  freedrain::Int, is::Int, ie::Int, js::Int, je::Int, nzg::Int,
+  slz::V, dz::V, Δt::Float64,
+  landmask::Matrix{Int}, veg::M, hveg::M,
+  soiltxt::Array{Int,3}, wind::M, temp::M,
+  qair::M, press::M, netrad::M,
+  rshort::M, lai::M, precip::M,
+  qsrun::M, θ::A3, θ_eq::A3,
+  θ_wtd::M, wtd::M, waterdeficit::M,
+  watext::A3,
+  watextdeep::M, rech::M,
+  deeprech::M,
+  et_s::M, et_i::M, et_c::M,
+  intercepstore::M, ppacum::M,
+  pppendepth::M, pppendepthold::Matrix{Int8}, qlat::M,
+  qlatsum::M, qsprings::M, inactivedays::Array{Int,3},
+  maxinactivedays::Int, fieldcp::M, fdepth::M,
+  steps::Float64, floodheight::M, qrf::M,
+  delsfcwat::M, icefactor::Array{Int8,3}, wtdflux::M,
+  et_s_daily::M, et_c_daily::M, transptop::M,
+  infilk::Matrix{Int8}, infilflux::A3, infilfluxday::A3,
+  infilcounter::Array{Int16,3}, hour::Int,
+  o18::A3, o18ratiopp::M, tempsfc::M,
+  qlato18::M, transpo18::M, upflux::A3) where {
+  T<:Real,V<:Vector{T},M<:Matrix{T},A3<:Array{T,3}}
 
 
-    # 初始化冰冻因子数组
-    icefac = zeros(Int8, nzg)
+  # 初始化冰冻因子数组
+  icefac = zeros(Int8, nzg)
 
-    # 主循环
-    for j in (js+1):(je-1)
-        for i in (is+1):(ie-1)
-            if landmask[i, j] == 0
-                continue
-            end
+  # 主循环
+  for j in (js+1):(je-1)
+    for i in (is+1):(ie-1)
+      if landmask[i, j] == 0
+        continue
+      end
 
-            # 复制冰冻因子
-            icefac[26:40] .= icefactor[i, j, 26:40]
+      # 复制冰冻因子
+      icefac[26:40] .= icefactor[i, j, 26:40]
 
-            # 检查是否有洪水
-            floodflag = floodheight[i, j] > 0.05 ? 1 : 0
+      # 检查是否有洪水
+      floodflag = floodheight[i, j] > 0.05 ? 1 : 0
 
-            # 计算 Shuttleworth-Wallace 蒸散发
-            δ, γ, λ, ra_a, ra_c, rs_c, R_a, R_s, petfactor_s, petfactor_c, petstep_w, petstep_i =
-                potevap_shutteworth_wallace(Δt, temp[i, j], netrad[i, j], rshort[i, j],
-                    press[i, j], qair[i, j], wind[i, j], lai[i, j],
-                    veg[i, j], hveg[i, j], floodflag)
+      # 计算 Shuttleworth-Wallace 蒸散发
+      δ, γ, λ, ra_a, ra_c, rs_c, R_a, R_s, petfactor_s, petfactor_c, petstep_w, petstep_i =
+        potevap_shutteworth_wallace(Δt, temp[i, j], netrad[i, j], rshort[i, j],
+          press[i, j], qair[i, j], wind[i, j], lai[i, j],
+          veg[i, j], hveg[i, j], floodflag)
 
-            # 累计土壤蒸发
-            et_s[i, j] += petstep_w
-            if floodflag == 1 && round(Int, veg[i, j]) <= 1
-                delsfcwat[i, j] -= petstep_w * 1.0e-3
-            end
+      # 累计土壤蒸发
+      et_s[i, j] += petstep_w
+      if floodflag == 1 && round(Int, veg[i, j]) <= 1
+        delsfcwat[i, j] -= petstep_w * 1.0e-3
+      end
 
-            # 如果是水体或裸地，跳过植被相关计算
-            if round(Int, veg[i, j]) <= 1
-                continue
-            end
+      # 如果是水体或裸地，跳过植被相关计算
+      if round(Int, veg[i, j]) <= 1
+        continue
+      end
 
-            # 植被截留计算
-            ppdrip, etstep_i, new_intercepstore = interception(precip[i, j], lai[i, j],
-                intercepstore[i, j], petstep_i)
+      # 植被截留计算
+      ppdrip, etstep_i, new_intercepstore = interception(precip[i, j], lai[i, j],
+        intercepstore[i, j], petstep_i)
 
-            # 更新截留蒸发和存储
-            et_i[i, j] += etstep_i
-            intercepstore[i, j] = new_intercepstore
+      # 更新截留蒸发和存储
+      et_i[i, j] += etstep_i
+      intercepstore[i, j] = new_intercepstore
 
-            # 分步计算
-            ppdrip_step = ppdrip / steps  # mm
-            floodstep = floodheight[i, j] / steps  # m
-            qlatstep = qlat[i, j] / steps  # m
-            qlato18step = qlato18[i, j] / steps  # m
-            qrfstep = qrf[i, j] / steps  # m
+      # 分步计算
+      ppdrip_step = ppdrip / steps  # mm
+      floodstep = floodheight[i, j] / steps  # m
+      qlatstep = qlat[i, j] / steps  # m
+      qlato18step = qlato18[i, j] / steps  # m
+      qrfstep = qrf[i, j] / steps  # m
 
-            # 初始化通量数组
-            flux = zeros(Float64, nzg + 1)
-            qlatflux = zeros(Float64, nzg + 2)
+      # 初始化通量数组
+      flux = zeros(Float64, nzg + 1)
+      qlatflux = zeros(Float64, nzg + 2)
 
-            wtdold = wtd[i, j]
+      wtdold = wtd[i, j]
 
-            # 时间子循环
-            for itime in 1:round(Int, steps)
-                # 水分提取计算
-                pet_s, pet_c, watdef, dsmoi, dsmoideep = extraction(i, j, nzg, slz, dz, Δt / steps,
-                    soiltxt[1, i, j], wtd[i, j], θ[:, i, j], θ_wtd[i, j], δ, γ, λ, lai[i, j],
-                    ra_a, ra_c, rs_c, R_a, R_s, petfactor_s, petfactor_c, inactivedays[:, i, j],
-                    maxinactivedays, fieldcp, hveg[i, j], fdepth[i, j], icefac)
+      # 时间子循环
+      for itime in 1:round(Int, steps)
+        # 水分提取计算
+        pet_s, pet_c, watdef, dsmoi, dsmoideep = extraction(nzg, slz, dz, Δt / steps,
+          soiltxt[1, i, j], wtd[i, j], θ[:, i, j], θ_wtd[i, j], δ, γ, λ, lai[i, j],
+          ra_a, ra_c, rs_c, R_a, R_s, petfactor_s, petfactor_c, inactivedays[:, i, j],
+          maxinactivedays, fieldcp, hveg[i, j], fdepth[i, j], icefac)
 
-                # 更新蒸腾和水分不足量
-                et_c[i, j] += pet_c - watdef * 1.0e3
-                waterdeficit[i, j] += watdef * 1.0e3
-                watext[:, i, j] .+= dsmoi .* 1.0e3
-                transptop[i, j] += dsmoi[nzg] * 1.0e3
-                et_c_daily[i, j] += pet_c - watdef * 1.0e3
+        # 更新蒸腾和水分不足量
+        et_c[i, j] += pet_c - watdef * 1.0e3
+        waterdeficit[i, j] += watdef * 1.0e3
+        watext[:, i, j] .+= dsmoi .* 1.0e3
+        transptop[i, j] += dsmoi[nzg] * 1.0e3
+        et_c_daily[i, j] += pet_c - watdef * 1.0e3
 
-                # 土壤水流计算
-                # updated_o18, transpo18step
-                et_s_step, runoff, rechstep, flux_step, qrfcorrect, updated_smoi =
-                    soilfluxes(nzg, Δt / steps, slz, dz, soiltxt[1, i, j],
-                        θ_wtd[i, j],
-                        dsmoi, dsmoideep, θ[:, i, j], wtd[i, j], ppdrip_step, pet_s,
-                        fdepth[i, j], qlatstep, qrfstep, floodstep, icefac
-                        ; freedrain
-                    )
-                # θ_eq[:, i, j], o18[:, i, j], o18ratiopp[i, j], tempsfc[i, j],
-                # qlato18step, transpo18step
+        # 土壤水流计算
+        # updated_o18, transpo18step
+        et_s_step, runoff, rechstep, flux_step, qrfcorrect, updated_smoi =
+          soilfluxes(nzg, Δt / steps, slz, dz, soiltxt[1, i, j],
+            θ_wtd[i, j],
+            dsmoi, dsmoideep, θ[:, i, j], wtd[i, j], ppdrip_step, pet_s,
+            fdepth[i, j], qlatstep, qrfstep, floodstep, icefac
+            ; freedrain
+          )
+        # θ_eq[:, i, j], o18[:, i, j], o18ratiopp[i, j], tempsfc[i, j],
+        # qlato18step, transpo18step
 
 
 
-                # 更新状态变量
-                delsfcwat[i, j] -= max(floodstep - runoff, 0.0)  # m
-                qsrun[i, j] += max(runoff - floodstep, 0.0)  # m
-                rech[i, j] += rechstep * 1.0e3
-                et_s[i, j] += et_s_step
-                transpo18[i, j] += transpo18step * 1.0e3
-                et_s_daily[i, j] += et_s_step
-                ppacum[i, j] += ppdrip_step
-                qrf[i, j] += qrfcorrect
+        # 更新状态变量
+        delsfcwat[i, j] -= max(floodstep - runoff, 0.0)  # m
+        qsrun[i, j] += max(runoff - floodstep, 0.0)  # m
+        rech[i, j] += rechstep * 1.0e3
+        et_s[i, j] += et_s_step
+        transpo18[i, j] += transpo18step * 1.0e3
+        et_s_daily[i, j] += et_s_step
+        ppacum[i, j] += ppdrip_step
+        qrf[i, j] += qrfcorrect
 
-                # 更新土壤含水量和同位素
-                θ[:, i, j] .= updated_smoi
-                o18[:, i, j] .= updated_o18
+        # 更新土壤含水量和同位素
+        θ[:, i, j] .= updated_smoi
+        o18[:, i, j] .= updated_o18
 
-                # 更新浅层地下水位
-                wtd[i, j], rech_additional = updateshallowwtd(i, j, nzg, freedrain, slz, dz,
-                    soiltxt[1, i, j], θ_eq[:, i, j], θ_wtd[i, j], θ[:, i, j], wtd[i, j], fdepth[i, j])
+        # 更新浅层地下水位
+        wtd[i, j], rech_additional = updateshallowwtd(i, j, nzg, freedrain, slz, dz,
+          soiltxt[1, i, j], θ_eq[:, i, j], θ_wtd[i, j], θ[:, i, j], wtd[i, j], fdepth[i, j])
 
-                rech[i, j] += rech_additional * 1.0e3
-                qlatsum[i, j] += qlatstep
+        rech[i, j] += rech_additional * 1.0e3
+        qlatsum[i, j] += qlatstep
 
-                # 累计通量
-                flux .+= flux_step
-            end
+        # 累计通量
+        flux .+= flux_step
+      end
 
-            # 保存入渗信息
-            for k in nzg:-1:1
-                if flux[k+1] < 0.0
-                    infilflux[k, i, j] += flux[k+1] * 1.0e3
-                else
-                    upflux[k, i, j] += flux[k+1] * 1.0e3
-                end
-                infilfluxday[k, i, j] += flux[k+1] * 1.0e3
-            end
-
-            # 入渗计数器
-            if hour == 0
-                for k in nzg:-1:1
-                    if infilfluxday[k, i, j] < -0.01
-                        infilcounter[k, i, j] += 1
-                    end
-                    infilfluxday[k, i, j] = 0.0
-                end
-            end
-
-            # 确定入渗深度
-            infilkstep = nzg + 1
-            pppendepthstep = 0.0
-            flux[nzg+1] = -1.0
-
-            for k in nzg:-1:0
-                if k <= nzg - 2
-                    if pppendepthold[i, j] >= k + 3
-                        break
-                    end
-                end
-
-                if flux[k+1] < -0.333e-5  # 时间步长从3h改为1h后相应调整阈值
-                    if k == 0
-                        if -flux[1] > -qlatflux[1] && pppendepthstep > slz[1]
-                            pppendepthstep = slz[1]
-                            infilkstep = 1
-                        end
-                    elseif -flux[k+1] + flux[k] > -qlatflux[k] + dsmoi[k] && pppendepthstep > slz[k+1]
-                        pppendepthstep = slz[k+1]
-                        infilkstep = k + 1
-                    end
-                end
-            end
-
-            pppendepthold[i, j] = infilkstep
-
-            if pppendepth[i, j] > pppendepthstep
-                pppendepth[i, j] = pppendepthstep
-            end
-
-            if slz[max(infilkstep - 1, 1)] <= wtdold
-                wtdflux[i, j] -= flux[infilkstep] * 1.0e3
-            end
-
-            if infilk[i, j] > infilkstep
-                infilk[i, j] = infilkstep
-            end
+      # 保存入渗信息
+      for k in nzg:-1:1
+        if flux[k+1] < 0.0
+          infilflux[k, i, j] += flux[k+1] * 1.0e3
+        else
+          upflux[k, i, j] += flux[k+1] * 1.0e3
         end
-    end
+        infilfluxday[k, i, j] += flux[k+1] * 1.0e3
+      end
 
-    return nothing  # 所有变量都是原地更新
+      # 入渗计数器
+      if hour == 0
+        for k in nzg:-1:1
+          if infilfluxday[k, i, j] < -0.01
+            infilcounter[k, i, j] += 1
+          end
+          infilfluxday[k, i, j] = 0.0
+        end
+      end
+
+      # 确定入渗深度
+      infilkstep = nzg + 1
+      pppendepthstep = 0.0
+      flux[nzg+1] = -1.0
+
+      for k in nzg:-1:0
+        if k <= nzg - 2
+          if pppendepthold[i, j] >= k + 3
+            break
+          end
+        end
+
+        if flux[k+1] < -0.333e-5  # 时间步长从3h改为1h后相应调整阈值
+          if k == 0
+            if -flux[1] > -qlatflux[1] && pppendepthstep > slz[1]
+              pppendepthstep = slz[1]
+              infilkstep = 1
+            end
+          elseif -flux[k+1] + flux[k] > -qlatflux[k] + dsmoi[k] && pppendepthstep > slz[k+1]
+            pppendepthstep = slz[k+1]
+            infilkstep = k + 1
+          end
+        end
+      end
+
+      pppendepthold[i, j] = infilkstep
+
+      if pppendepth[i, j] > pppendepthstep
+        pppendepth[i, j] = pppendepthstep
+      end
+
+      if slz[max(infilkstep - 1, 1)] <= wtdold
+        wtdflux[i, j] -= flux[infilkstep] * 1.0e3
+      end
+
+      if infilk[i, j] > infilkstep
+        infilk[i, j] = infilkstep
+      end
+    end
+  end
+
+  return nothing  # 所有变量都是原地更新
 end

@@ -2,7 +2,6 @@
 土壤参数模块
 定义各种土壤类型的参数和常数
 """
-module SoilParameters
 
 export SoilType, get_soil_params, init_soil_param, cal_K
 
@@ -94,5 +93,3 @@ end
 function cal_K(θ::Float64, θ_sat::Float64, Ksat::Float64, b::Float64)
     return Ksat * (θ / θ_sat)^(2.0 * b + 3.0)
 end
-
-end # module SoilParameters

@@ -9,17 +9,16 @@ using ASAP
 
 # 导入子模块
 include("helper.jl")
-include("WaterTableCalculations.jl")
-include("lateral_flow.jl")
 include("wtable.jl")
-include("GroundwaterRiverInteraction.jl")
+include("lateral_flow.jl")
+include("GWRiverInteraction.jl")
 
 include("IsotopeTracing.jl")
 
 # 导出主要函数
-export wtable!, updatewtd!, lateral_flow!,                                      # 水位计算
+export wtable!, updatewtd!, lateral_flow!, 
     gw2river!, rivers_kw_flood!, rivers_dw_flood!, flooding!, moveqrf!,         # 河流-地下水相互作用
-    lateral_isotope!, updatedeepwtable!                                         # 同位素追踪
+    lateral_isotope!, updatedeepwtable!              # 同位素追踪
 
 export flowdir
 
