@@ -36,24 +36,19 @@ const POTFC = -3.366    # 田间持水量水势 (m)
 """
 function extraction(
   nzg::Int, z₋ₕ::Vector{Float64}, dz::Vector{Float64},
-  Δt::Float64, soiltxt::Int, 
-  wtd::Float64, θ::Vector{Float64}, θ_wtd::Float64, 
+  Δt::Float64, soiltxt::Int,
+  wtd::Float64, θ::Vector{Float64}, θ_wtd::Float64,
   Δ::Float64, γ::Float64, λ::Float64,
   lai::Float64, ra_a::Float64, ra_c::Float64, rs_c_factor::Float64,
   R_a::Float64, R_s::Float64, petfactor_s::Float64, petfactor_c::Float64,
-  inactivedays::Vector{Int}, maxinactivedays::Int, 
+  inactivedays::Vector{Int}, maxinactivedays::Int,
   fieldcp::Matrix{Float64},
   hhveg::Float64, fdepth::Float64, icefac::Vector{Int8})
-  
-  hveg = 2.0 * hhveg / 3.0
 
-  # 初始化变量
+  hveg = 2 / 3 * hhveg # 叶片高度
   easy = zeros(Float64, nzg)
-  easydeep = 0.0
-  dzwtd = 0.0
   rootmask = zeros(Int, nzg)
   dz2 = copy(dz)
-  dz3 = 0.0
 
   # 计算地下水位所在层
   iwtd = 1
@@ -63,27 +58,26 @@ function extraction(
       break
     end
   end
-  kwtd = iwtd - 1
+  kwtd = iwtd - 1 # 地下水所在层
 
   # 调整地下水位层厚度
   if kwtd >= 1 && kwtd < nzg
-    dz2[kwtd] = z₋ₕ[iwtd] - wtd
+    dz2[kwtd] = z₋ₕ[iwtd] - wtd  # 非饱和层厚度, 
   end
 
   # 计算根系最低层
   kroot = 0
   for k in 1:nzg
     if inactivedays[k] <= maxinactivedays
-      kroot = k - 1
+      kroot = k - 1 # 为何返回的是k-1，而不是k? 从k应该更合理
       break
     end
   end
+  # 现在的代码，根系没有直接从地下水中抽水
 
   # 计算各层的水分提取便利性
   for k in max(kwtd, kroot, 1):nzg
-    if inactivedays[k] <= maxinactivedays
-      rootmask[k] = 1
-    end
+    inactivedays[k] <= maxinactivedays && (rootmask[k] = 1)
 
     _z = 0.5 * (z₋ₕ[k] + z₋ₕ[k+1])
     soil = get_soil_params(soiltxt)
@@ -110,9 +104,7 @@ function extraction(
 
   # 去除小于最大值0.1%的活性
   for k in 1:nzg
-    if easy[k] < 0.001 * maxeasy
-      easy[k] = 0.0
-    end
+    easy[k] < 0.001 * maxeasy && (easy[k] = 0.0)
   end
 
   # 对于非活跃层，进一步限制根系活性
@@ -123,7 +115,7 @@ function extraction(
   end
 
   # 计算总的便利性
-  toteasy = sum(easy .* dz2)
+  toteasy = sum(easy .* dz2) # 不考虑地下水的部分？
   if toteasy == 0.0
     rootactivity = zeros(Float64, nzg)
   else
@@ -132,15 +124,9 @@ function extraction(
 
   # 更新非活跃天数
   for k in 1:nzg
-    if easy[k] == 0.0
-      inactivedays[k] += 1
-    else
-      inactivedays[k] = 0
-    end
+    inactivedays[k] = easy[k] == 0.0 ? inactivedays[k] + 1 : 0
   end
-
-  # 限制最大非活跃天数
-  inactivedays .= min.(inactivedays, maxinactivedays + 1)
+  inactivedays .= min.(inactivedays, maxinactivedays + 1)   # 限制最大非活跃天数
 
   # 计算根区土壤湿度和田间持水量
   θ_root = 0.0
@@ -163,13 +149,7 @@ function extraction(
   end
 
   # 计算土壤水分胁迫因子
-  if θ_root <= 0.0
-    fswp = 0.0
-  elseif θ_root / rootfc <= 1.0
-    fswp = θ_root / rootfc
-  else
-    fswp = 1.0
-  end
+  fswp = clamp(θ_root / rootfc, 0.0, 1.0)
 
   # 计算冠层和土壤阻力
   rs_c = fswp == 0.0 ? 5000.0 : min(rs_c_factor / fswp, 5000.0)
@@ -199,7 +179,7 @@ function extraction(
     return pet_s, pet_c, watdef, dθ, dθ_deep
   end
 
-  # 从各层提取水分
+  # 从各层提取水分，每层都会抽取水分
   for k in max(kwtd, 1):nzg
     extract = max(rootactivity[k] * transpwater, 0.0)
 
@@ -207,7 +187,7 @@ function extraction(
       dθ[k] = extract
     else
       dθ[k] = maxwat[k]
-      watdef += (extract - maxwat[k])
+      watdef += (extract - maxwat[k]) # 没有得到满足的部分
     end
   end
   dθ .= max.(dθ, 0.0)

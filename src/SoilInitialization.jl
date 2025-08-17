@@ -63,18 +63,18 @@ end
 - `dz` : [N, 1], 土壤层厚度
 """
 function initializesoildepth(nzg::Int)
-  slz = zeros(Float64, nzg + 1)
+  z₋ₕ = zeros(Float64, nzg + 1)
   dz = zeros(Float64, nzg)
 
   if nzg > length(DZ2)
     error("土壤层数不能超过 $(length(DZ2))")
   end
-  slz[nzg+1] = 0.0  # 地表深度
+  z₋ₕ[nzg+1] = 0.0  # 地表深度
 
   # 从地表向下计算各层深度
   for k in nzg:-1:1
     dz[k] = DZ2[nzg-k+1]
-    slz[k] = slz[k+1] - dz[k]
+    z₋ₕ[k] = z₋ₕ[k+1] - dz[k]
   end
-  return slz, dz
+  return z₋ₕ, dz
 end

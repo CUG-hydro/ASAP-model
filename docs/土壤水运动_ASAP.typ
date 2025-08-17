@@ -150,7 +150,7 @@ $
 
 *若非重力排水*，地下水淹没部分Q=0。
 // #highlight[该情景下，模型是如何处理的？请补全文档说明]
-#include "Figure_soil.typ"
+#include "Figure_Soil_ASAP.typ"
 
 - 第$1 ~ "jwt"-3$层（图中的1\~2层），$Q_"in" = 0, Q_"out" = 0$；
 

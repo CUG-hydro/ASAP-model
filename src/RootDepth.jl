@@ -89,7 +89,7 @@ rootdepth_main(freedrain, is, ie, js, je, nzg, slz_f32, ..., smoi_f32, ...)
 """
 function rootdepth_main(
   freedrain::Int, is::Int, ie::Int, js::Int, je::Int, nzg::Int,
-  slz::V, dz::V, Δt::Float64,
+  z₋ₕ::V, dz::V, Δt::Float64,
   landmask::Matrix{Int}, veg::M, hveg::M,
   soiltxt::Array{Int,3}, wind::M, temp::M,
   qair::M, press::M, netrad::M,
@@ -101,7 +101,7 @@ function rootdepth_main(
   deeprech::M,
   et_s::M, et_i::M, et_c::M,
   intercepstore::M, ppacum::M,
-  pppendepth::M, pppendepthold::Matrix{Int8}, qlat::M,
+  pInfiltDepth::M, pInfiltDepthK_old::Matrix{Int8}, qlat::M,
   qlatsum::M, qsprings::M, inactivedays::Array{Int,3},
   maxinactivedays::Int, fieldcp::M, fdepth::M,
   steps::Float64, floodheight::M, qrf::M,
@@ -166,12 +166,12 @@ function rootdepth_main(
       flux = zeros(Float64, nzg + 1)
       qlatflux = zeros(Float64, nzg + 2)
 
-      wtdold = wtd[i, j]
+      wtd_old = wtd[i, j]
 
       # 时间子循环
       for itime in 1:round(Int, steps)
         # 水分提取计算
-        pet_s, pet_c, watdef, dsmoi, dsmoideep = extraction(nzg, slz, dz, Δt / steps,
+        pet_s, pet_c, watdef, dθ, dsmoideep = extraction(nzg, z₋ₕ, dz, Δt / steps,
           soiltxt[1, i, j], wtd[i, j], θ[:, i, j], θ_wtd[i, j], δ, γ, λ, lai[i, j],
           ra_a, ra_c, rs_c, R_a, R_s, petfactor_s, petfactor_c, inactivedays[:, i, j],
           maxinactivedays, fieldcp, hveg[i, j], fdepth[i, j], icefac)
@@ -179,16 +179,16 @@ function rootdepth_main(
         # 更新蒸腾和水分不足量
         et_c[i, j] += pet_c - watdef * 1.0e3
         waterdeficit[i, j] += watdef * 1.0e3
-        watext[:, i, j] .+= dsmoi .* 1.0e3
-        transptop[i, j] += dsmoi[nzg] * 1.0e3
+        watext[:, i, j] .+= dθ .* 1.0e3
+        transptop[i, j] += dθ[nzg] * 1.0e3
         et_c_daily[i, j] += pet_c - watdef * 1.0e3
 
         # 土壤水流计算
         # updated_o18, transpo18step
         et_s_step, runoff, rechstep, flux_step, qrfcorrect, updated_smoi =
-          soilfluxes(nzg, Δt / steps, slz, dz, soiltxt[1, i, j],
+          soilfluxes(nzg, Δt / steps, z₋ₕ, dz, soiltxt[1, i, j],
             θ_wtd[i, j],
-            dsmoi, dsmoideep, θ[:, i, j], wtd[i, j], ppdrip_step, pet_s,
+            dθ, dsmoideep, θ[:, i, j], wtd[i, j], ppdrip_step, pet_s,
             fdepth[i, j], qlatstep, qrfstep, floodstep, icefac
             ; freedrain
           )
@@ -212,7 +212,7 @@ function rootdepth_main(
         o18[:, i, j] .= updated_o18
 
         # 更新浅层地下水位
-        wtd[i, j], rech_additional = updateshallowwtd(i, j, nzg, freedrain, slz, dz,
+        wtd[i, j], rech_additional = updateshallowwtd(i, j, nzg, freedrain, z₋ₕ, dz,
           soiltxt[1, i, j], θ_eq[:, i, j], θ_wtd[i, j], θ[:, i, j], wtd[i, j], fdepth[i, j])
 
         rech[i, j] += rech_additional * 1.0e3
@@ -243,45 +243,39 @@ function rootdepth_main(
       end
 
       # 确定入渗深度
-      infilkstep = nzg + 1
-      pppendepthstep = 0.0
+      _kInfilt = nzg + 1
+      _pInfiltDepth = 0.0
       flux[nzg+1] = -1.0
 
       for k in nzg:-1:0
         if k <= nzg - 2
-          if pppendepthold[i, j] >= k + 3
+          if pInfiltDepthK_old[i, j] >= k + 3 # 下渗深度，不可能一下增加三层
             break
           end
         end
-
+        
+        # 0.012 [cm/h] to [m/s]
         if flux[k+1] < -0.333e-5  # 时间步长从3h改为1h后相应调整阈值
           if k == 0
-            if -flux[1] > -qlatflux[1] && pppendepthstep > slz[1]
-              pppendepthstep = slz[1]
-              infilkstep = 1
+            if -flux[1] > -qlatflux[1] && _pInfiltDepth > z₋ₕ[1]
+              _pInfiltDepth = z₋ₕ[1]
+              _kInfilt = 1
             end
-          elseif -flux[k+1] + flux[k] > -qlatflux[k] + dsmoi[k] && pppendepthstep > slz[k+1]
-            pppendepthstep = slz[k+1]
-            infilkstep = k + 1
+          elseif -flux[k+1] + flux[k] > -qlatflux[k] + dθ[k] && _pInfiltDepth > z₋ₕ[k+1]
+            _pInfiltDepth = z₋ₕ[k+1]
+            _kInfilt = k + 1
           end
         end
       end
 
-      pppendepthold[i, j] = infilkstep
-
-      if pppendepth[i, j] > pppendepthstep
-        pppendepth[i, j] = pppendepthstep
+      pInfiltDepthK_old[i, j] = _kInfilt
+      pInfiltDepth[i, j] > _pInfiltDepth && (pInfiltDepth[i, j] = _pInfiltDepth)
+      
+      if z₋ₕ[max(_kInfilt - 1, 1)] <= wtd_old
+        wtdflux[i, j] -= flux[_kInfilt] * 1.0e3
       end
-
-      if slz[max(infilkstep - 1, 1)] <= wtdold
-        wtdflux[i, j] -= flux[infilkstep] * 1.0e3
-      end
-
-      if infilk[i, j] > infilkstep
-        infilk[i, j] = infilkstep
-      end
+      infilk[i, j] > _kInfilt && (infilk[i, j] = _kInfilt)
     end
   end
-
   return nothing  # 所有变量都是原地更新
 end
