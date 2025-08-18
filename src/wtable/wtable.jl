@@ -32,8 +32,8 @@ export wtable!, updatewtd!, lateral_flow!
 - qsprings   : 泉水流量
 """
 function wtable!(
-  imax::Int, jmax::Int, is::Int, ie::Int, js::Int, je::Int, nzg::Int,
-  z₋ₕ::V, dz::V, area::M,
+  imax::Int, jmax::Int, is::Int, ie::Int, js::Int, je::Int, 
+  nzg::Int, z₋ₕ::V, dz::V, area::M,
   soiltxt::Array{Int,3}, wtd::M, bottomflux::M,
   rech::M, qslat::M, fdepth::M,
   topo::M, landmask::Matrix{Int}, Δt::T,
@@ -77,7 +77,7 @@ function wtable!(
           # 计算湿度势
           ψ = soil.ψsat * (soil.θ_sat / θ_wtd[i, j])^soil.b
 
-          # 计算通量(=补给)
+          # 计算通量(=补给), 
           deeprech[i, j] = Δt * K * ((soil.ψsat - ψ) / (z₋ₕ[1] - wtd[i, j]) - 1.0)
 
           # 更新水位处土壤湿度

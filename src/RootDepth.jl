@@ -208,7 +208,7 @@ function rootdepth_main(
         o18[:, i, j] .= updated_o18
 
         # 更新浅层地下水位
-        wtd[i, j], rech_additional = updateshallowwtd(i, j, nzg, freedrain, z₋ₕ, dz,
+        wtd[i, j], rech_additional = updatewtd_shallow(nzg, freedrain, z₋ₕ, dz,
           soiltxt[1, i, j], θ_eq[:, i, j], θ_wtd[i, j], θ[:, i, j], wtd[i, j], fdepth[i, j])
 
         rech[i, j] += rech_additional * 1.0e3

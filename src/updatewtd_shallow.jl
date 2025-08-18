@@ -33,73 +33,69 @@ function updatewtd_shallow(nzg::Int, freedrain::Int, z₋ₕ::Vector{Float64},
 
   while true
     flag = 0
-    kwtd = jwt - 1
+    kwt = jwt - 1
+    kwt <= 0 && break # 地下水位在已解析层中
 
-    if kwtd > 0  # 地下水位在已解析层中
-      wtd_old = wtd
-      soil = get_soil_params(soiltxt)
+    wtd_old = wtd
+    soil = get_soil_params(soiltxt)
 
-      # 检查上层是否接近饱和
-      if kwtd > 1
-        θ_sat = soil.θ_sat * cal_factor(z[kwtd - 1], fdepth)
-        if wtd < z₋ₕ[kwtd] + 0.01 && θ[kwtd-1] < θ_sat
-          flag = 1
-        end
+    # 检查上层是否接近饱和
+    if kwt > 1
+      θ_sat = soil.θ_sat * cal_factor(z[kwt-1], fdepth)
+      if wtd < z₋ₕ[kwt] + 0.01 && θ[kwt-1] < θ_sat
+        flag = 1 # 这种情况是错误的？需要进行修正
       end
-      θ_sat = soil.θ_sat * cal_factor(z[kwtd], fdepth)
-
-      if θ[kwtd] > θ_eq[kwtd] && flag == 0
-        if θ[kwtd] == θ_sat  # 地下水位上升到上层
-          wtd = z₋ₕ[jwt]
-          rech = (wtd_old - wtd) * (θ_sat - θ_eq[kwtd])
-          jwt = jwt + 1
-          kwtd = kwtd + 1
-
-          if kwtd <= nzg
-            if θ[kwtd] > θ_eq[kwtd]
-              wtd_old = wtd
-              θ_sat = soil.θ_sat * cal_factor(z[kwtd], fdepth)
-              wtd = min((θ[kwtd] * dz[kwtd] - θ_eq[kwtd] * z₋ₕ[jwt] + θ_sat * z₋ₕ[kwtd]) /
-                        (θ_sat - θ_eq[kwtd]), z₋ₕ[jwt])
-              rech = rech + (wtd_old - wtd) * (θ_sat - θ_eq[kwtd])
-            end
-          else
-            break
-          end
-        else  # 地下水位在层内
-          wtd = min((θ[kwtd] * dz[kwtd] - θ_eq[kwtd] * z₋ₕ[jwt] + θ_sat * z₋ₕ[kwtd]) /
-                    (θ_sat - θ_eq[kwtd]), z₋ₕ[jwt])
-          rech = (wtd_old - wtd) * (θ_sat - θ_eq[kwtd])
-          break
-        end
-
-      else  # 地下水位下降到下层
-        wtd = z₋ₕ[kwtd]
-        rech = (wtd_old - wtd) * (θ_sat - θ_eq[kwtd])
-        kwtd = kwtd - 1
-        jwt = jwt - 1
-
-        # 调整到下层
-        if kwtd >= 1
-          wtd_old = wtd
-          θ_sat = soil.θ_sat * cal_factor(z[kwtd], fdepth)
-
-          if θ[kwtd] > θ_eq[kwtd]
-            wtd = min((θ[kwtd] * dz[kwtd] - θ_eq[kwtd] * z₋ₕ[jwt] + θ_sat * z₋ₕ[kwtd]) /
-                      (θ_sat - θ_eq[kwtd]), z₋ₕ[jwt])
-            rech = rech + (wtd_old - wtd) * (θ_sat - θ_eq[kwtd])
-            break
-          else
-            wtd = z₋ₕ[kwtd]
-            rech = rech + (wtd_old - wtd) * (θ_sat - θ_eq[kwtd])
-          end
-        else
-          break
-        end
-      end
-    else
-      break
     end
+    θ_sat = soil.θ_sat * cal_factor(z[kwt], fdepth)
+
+    if θ[kwt] > θ_eq[kwt] && flag == 0
+      if θ[kwt] == θ_sat  # 地下水位上升到上层
+        wtd = z₋ₕ[jwt]
+        rech = (wtd_old - wtd) * (θ_sat - θ_eq[kwt]) # release, 正释放了多少水, 若水位上升，则吸收水
+        jwt = jwt + 1
+        kwt = kwt + 1
+
+        kwt > nzg && break
+        # 已知这一层的土壤含水量，推求zwt到哪了
+        if θ[kwt] > θ_eq[kwt]
+          wtd_old = wtd
+          θ_sat = soil.θ_sat * cal_factor(z[kwt], fdepth)
+          wtd = min( (θ[kwt] * dz[kwt] - θ_eq[kwt] * z₋ₕ[jwt] + θ_sat * z₋ₕ[kwt]) /
+                    (θ_sat - θ_eq[kwt]), z₋ₕ[jwt] ) # 更新之后的地下水水位
+          rech = rech + (wtd_old - wtd) * (θ_sat - θ_eq[kwt])
+        end
+      else  # 地下水位在层内
+        wtd = min((θ[kwt] * dz[kwt] - θ_eq[kwt] * z₋ₕ[jwt] + θ_sat * z₋ₕ[kwt]) /
+                  (θ_sat - θ_eq[kwt]), z₋ₕ[jwt])
+        rech = (wtd_old - wtd) * (θ_sat - θ_eq[kwt])
+        break
+      end
+
+    else  # 地下水位下降到下层
+      wtd = z₋ₕ[kwt]
+      rech = (wtd_old - wtd) * (θ_sat - θ_eq[kwt])
+      kwt = kwt - 1
+      jwt = jwt - 1
+
+      # 调整到下层
+      if kwt >= 1
+        wtd_old = wtd
+        θ_sat = soil.θ_sat * cal_factor(z[kwt], fdepth)
+
+        if θ[kwt] > θ_eq[kwt]
+          wtd = min((θ[kwt] * dz[kwt] - θ_eq[kwt] * z₋ₕ[jwt] + θ_sat * z₋ₕ[kwt]) /
+                    (θ_sat - θ_eq[kwt]), z₋ₕ[jwt])
+          rech = rech + (wtd_old - wtd) * (θ_sat - θ_eq[kwt])
+          break
+        else
+          wtd = z₋ₕ[kwt]
+          rech = rech + (wtd_old - wtd) * (θ_sat - θ_eq[kwt])
+        end
+      else
+        break
+      end
+    end
+
   end
   wtd < z₋ₕ[1] && (println("地下水位问题: wtd=$wtd")) # 地下水水位过深
   return wtd, rech
