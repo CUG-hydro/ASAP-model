@@ -4,7 +4,6 @@ export soilfluxes, tridag
 计算土壤中的水分通量和运动
 
 # 参数
-- `i::Int`, `j::Int`: 网格坐标
 - `nzg::Int`: 土壤层数
 - `freedrain::Int`: 自由排水标志
 - `dtll::Float64`: 时间步长 (s)
