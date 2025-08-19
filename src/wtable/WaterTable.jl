@@ -7,7 +7,7 @@ using ASAP
 
 # 导入子模块
 include("helper.jl")
-include("wtable.jl")
+include("flooding.jl")
 include("lateral_flow.jl")
 include("GWRiverInteraction.jl")
 
