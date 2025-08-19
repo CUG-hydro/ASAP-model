@@ -48,8 +48,8 @@ function updatewtd_shallow(nzg::Int, freedrain::Int, z₋ₕ::Vector{Float64},
     end
     θ_sat = soil.θ_sat * cal_factor(z[kwt], fdepth)
 
-    if θ[kwt] > θ_eq[kwt] && flag == 0
-      if θ[kwt] == θ_sat  # 地下水位上升到上层
+    if θ[kwt] > θ_eq[kwt] && flag == 0 # 水位上升
+      if θ[kwt] == θ_sat  # 上升一层
         wtd = z₋ₕ[jwt]
         rech = (wtd_old - wtd) * (θ_sat - θ_eq[kwt]) # release, 正释放了多少水, 若水位上升，则吸收水
         jwt = jwt + 1

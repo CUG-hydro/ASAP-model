@@ -20,6 +20,7 @@ struct SoilType
   b::Float64          # 土壤b参数, b
 end
 
+
 # 土壤参数数据
 const θSAT = [0.395, 0.410, 0.435, 0.485, 0.451, 0.420, 0.477, 0.476, 0.426, 0.492, 0.482, 0.863, 0.476]
 const SOILCP = [0.050, 0.052, 0.092, 0.170, 0.125, 0.148, 0.195, 0.235, 0.202, 0.257, 0.268, 0.195, 0.235]
@@ -68,15 +69,15 @@ function init_soil_param(nzg::Int)
   POTWILT_LOCAL = -153.0  # 凋萎点基质势
 
   fieldcp = zeros(Float64, nzg, NSTYP)
-  slwilt = zeros(Float64, NSTYP)
+  θ_wilt = zeros(Float64, NSTYP)
 
   # 计算各土壤类型的凋萎点含水量
   for nsoil in 1:NSTYP
-    slwilt[nsoil] = θSAT[nsoil] * (ΨSAT[nsoil] / POTWILT_LOCAL)^(1.0 / SLBS[nsoil])
+    θ_wilt[nsoil] = θSAT[nsoil] * (ΨSAT[nsoil] / POTWILT_LOCAL)^(1.0 / SLBS[nsoil])
   end
-
-  return fieldcp, slwilt
+  return fieldcp, θ_wilt
 end
+
 
 """
 计算土壤导水率
