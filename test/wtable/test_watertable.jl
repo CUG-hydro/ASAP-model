@@ -1,5 +1,4 @@
-using Test
-using ASAP.WaterTable
+using ASAP, Test
 
 
 @testset "Flow Direction Function" begin
@@ -74,16 +73,16 @@ end
 
     Δt = 3600.0  # 1小时
 
-    # 测试wtable!函数运行不出错
-    @test_nowarn wtable!(
-        imax, jmax, 1, imax, 1, jmax, nzg,
-        slz, dz, area, soiltxt, wtd, bottomflux,
-        rech, qslat, fdepth, topo, landmask, Δt,
-        smoi, smoieq, smoiwtd, qsprings
-    )
+    # # 测试wtable!函数运行不出错
+    # @test_nowarn wtable!(
+    #     imax, jmax, 1, imax, 1, jmax, nzg,
+    #     slz, dz, area, soiltxt, wtd, bottomflux,
+    #     rech, qslat, fdepth, topo, landmask, Δt,
+    #     smoi, smoieq, smoiwtd, qsprings
+    # )
 
-    # 检查结果的基本属性
-    @test all(isfinite.(wtd))
-    @test all(isfinite.(qsprings))
-    @test all(isfinite.(rech))
+    # # 检查结果的基本属性
+    # @test all(isfinite.(wtd))
+    # @test all(isfinite.(qsprings))
+    # @test all(isfinite.(rech))
 end

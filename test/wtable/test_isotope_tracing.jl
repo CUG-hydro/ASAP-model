@@ -1,5 +1,4 @@
-using Test
-using ASAP.WaterTable
+using ASAP, Test
 
 @testset "Lateral Isotope Transport" begin
     # 创建简单的网格用于同位素传输测试

@@ -1,3 +1,6 @@
+const π2r = 0.0174532925199  # π/180 度转弧度
+
+
 # 同位素追踪模块
 export lateral_isotope!, updatedeepwtable!
 

@@ -1,5 +1,4 @@
-using Test
-using ASAP.WaterTable
+using ASAP, Test
 
 @testset "Diffusion Wave Flood Routing - flood scenario" begin
     # Grid and flow setup

@@ -18,10 +18,9 @@ include("updatewtd_shallow.jl")
 include("RootDepth.jl")
 
 # 导入新的水位模块
-include("wtable/WaterTable.jl")
+include("modules/Modules.jl")
 
 @reexport using .Evapotranspiration
-@reexport using .WaterTable
 
 
 export updatewtd_shallow, updatewtd_qlat

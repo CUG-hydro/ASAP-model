@@ -1,5 +1,4 @@
-using Test
-using ASAP.WaterTable
+using ASAP, Test
 
 
 @testset "Kinematic Wave Flood Routing" begin

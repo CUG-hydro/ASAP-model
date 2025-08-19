@@ -39,28 +39,6 @@
 - `Δt`: 时间步长 (Delta t)
 - `α`, `β`, `γ`, `δ`, `λ`: 其他参数
 
-## 使用示例
-```julia
-using ASAP.WaterTable
-
-# 初始化参数
-nzg = 10
-slz = collect(range(-0.1, -5.0, length=nzg+1))
-dz = -diff(slz)
-
-# 创建网格数组
-imax, jmax = 100, 100
-wtd = zeros(imax, jmax)
-smoi = zeros(nzg, imax, jmax)
-# ... 其他数组初始化
-
-# 主计算循环
-Δt = 3600.0  # 1小时时间步长
-wtable!(imax, jmax, 1, imax, 1, jmax, nzg,
-        slz, dz, area, soiltxt, wtd, bottomflux,
-        rech, qslat, fdepth, topo, landmask, Δt,
-        smoi, smoieq, smoiwtd, qsprings)
-```
 
 ## 算法说明
 ### 侧向流计算
