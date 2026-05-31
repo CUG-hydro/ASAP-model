@@ -111,7 +111,7 @@ function extraction(
   if toteasy == 0.0
     rootactivity = zeros(Float64, nzg)
   else
-    rootactivity = clamp((easy .* dz2) ./ toteasy, 0.0, 1.0)
+    rootactivity = clamp.((easy .* dz2) ./ toteasy, 0.0, 1.0)
   end
 
   # 更新非活跃天数
@@ -141,7 +141,7 @@ function extraction(
   end
 
   # 计算土壤水分胁迫因子
-  fswp = clamp(θ_root / rootfc, 0.0, 1.0)
+  fswp = rootfc == 0.0 ? 0.0 : clamp(θ_root / rootfc, 0.0, 1.0)
 
   # 计算冠层和土壤阻力
   rs_c = fswp == 0.0 ? 5000.0 : min(rs_c_factor / fswp, 5000.0)
