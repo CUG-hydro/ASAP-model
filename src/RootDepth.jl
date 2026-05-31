@@ -163,6 +163,7 @@ function rootdepth_main(
       qlatflux = zeros(Float64, nzg + 2)
 
       wtd_old = wtd[i, j]
+      dθ = zeros(Float64, nzg)  # pre-initialize so line 260 can access it outside the itime loop
 
       # 时间子循环
       for itime in 1:round(Int, steps)
