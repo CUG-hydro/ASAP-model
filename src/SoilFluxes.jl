@@ -202,6 +202,19 @@ function soilfluxes(
     cc[1] = D_mid[2] / Δz₊ₕ[2]
     bb[1] = -(cc[1] + Δz[1] / dt)
     rr[1] = -θ[1] * Δz[1] / dt - K_mid[2] + K_mid[1] + transp[1] / dt
+
+    # k=2 must be set explicitly since the main loop starts at max(jwt,3)=3
+    k = 2
+    aa[k] = D_mid[k] / Δz₊ₕ[k]
+    if k < nzg
+      cc[k] = D_mid[k+1] / Δz₊ₕ[k+1]
+      bb[k] = -(aa[k] + cc[k] + Δz[k] / dt)
+      rr[k] = -θ[k] * Δz[k] / dt - K_mid[k+1] + K_mid[k] + transp[k] / dt
+    else
+      cc[k] = 0.0
+      bb[k] = -(aa[k] + Δz[k] / dt)
+      rr[k] = -θ[k] * Δz[k] / dt + K_mid[k] + transp[k] / dt
+    end
   end
 
   # 求解三对角系统
@@ -283,7 +296,7 @@ function soilfluxes(
   # 处理最上层的干燥限制
   k = nzg
   soil = get_soil_params(soiltxt)
-  θ_cp = soil.ρb * max(min(exp((z[k] + 1.5) / fdepth), 1.0), 0.1)
+  θ_cp = soil.θ_cp * max(min(exp((z[k] + 1.5) / fdepth), 1.0), 0.1)
 
   et_s = pet_s
   if θ_old[k] < θ_cp
@@ -307,7 +320,7 @@ function soilfluxes(
   # 继续处理下层
   for k in (nzg-1):-1:1
     soil = get_soil_params(soiltxt)
-    θ_cp = soil.ρb * max(min(exp((z[k] + 1.5) / fdepth), 1.0), 0.1)
+    θ_cp = soil.θ_cp * max(min(exp((z[k] + 1.5) / fdepth), 1.0), 0.1)
 
     if θ_old[k] < θ_cp
       dθ = max((θ_cp - θ_old[k]) * Δz[k], 0.0)
