@@ -140,6 +140,95 @@ end
     @test runoff > 0.0
 end
 
+# 测试非自由排水条件：水位在土柱以下（jwt <= 2）
+@testset "非自由排水-水位在土柱以下" begin
+    nzg = 10
+    z₋ₕ, Δz = initializesoildepth(nzg)
+    dt = 3600.0
+    soiltxt = 4    # 壤土
+    θ_wtd = 0.4
+    transp = zeros(Float64, nzg)
+    θ = fill(0.25, nzg)
+    # wtd低于最底层边界，jwt=1 → jwt<=2分支
+    wtd = z₋ₕ[1] - 0.5
+    icefactor = zeros(Int8, nzg)
+
+    et_s, runoff, rech, flux, qrfcorrect, θ_new =
+        soilfluxes(nzg, dt, z₋ₕ, Δz, soiltxt,
+            θ_wtd, transp, 0.0, copy(θ), wtd,
+            5.0, 1.0, 2.0, 0.0, 0.0, 0.0, icefactor;
+            freedrain=false)
+
+    @test et_s >= 0.0
+    @test runoff >= 0.0
+    @test length(θ_new) == nzg
+    @test length(flux) == nzg + 1
+    @test all(isfinite.(θ_new))
+    # 非自由排水且水位极低，底层无渗漏
+    @test flux[1] == 0.0
+end
+
+# 测试非自由排水条件：水位在中间层（jwt > 3）
+@testset "非自由排水-水位在中间层" begin
+    nzg = 10
+    z₋ₕ, Δz = initializesoildepth(nzg)
+    dt = 3600.0
+    soiltxt = 4    # 壤土
+    soil = get_soil_params(soiltxt)
+    θ_wtd = soil.θ_sat
+    transp = zeros(Float64, nzg)
+    # 土柱接近饱和，水位在层5和层6之间（wtd=-0.55 → jwt=6）
+    θ = fill(soil.θ_sat * 0.9, nzg)
+    wtd = 0.5 * (z₋ₕ[5] + z₋ₕ[6])  # between layers 5 and 6
+    icefactor = zeros(Int8, nzg)
+
+    et_s, runoff, rech, flux, qrfcorrect, θ_new =
+        soilfluxes(nzg, dt, z₋ₕ, Δz, soiltxt,
+            θ_wtd, transp, 0.0, copy(θ), wtd,
+            3.0, 1.0, 2.0, 0.0, 0.0, 0.0, icefactor;
+            freedrain=false)
+
+    @test et_s >= 0.0
+    @test runoff >= 0.0
+    @test length(θ_new) == nzg
+    @test all(isfinite.(θ_new))
+    # 非自由排水，底层通量为零
+    @test flux[1] == 0.0
+end
+
+# 对比自由排水与非自由排水的底层渗漏差异
+@testset "自由排水与非自由排水底层渗漏对比" begin
+    nzg = 10
+    z₋ₕ, Δz = initializesoildepth(nzg)
+    dt = 3600.0
+    soiltxt = 1    # 沙土（Ksat大，容易产生底层渗漏）
+    θ_wtd = 0.35
+    transp = zeros(Float64, nzg)
+    θ = fill(0.3, nzg)
+    wtd = -2.0
+    icefactor = zeros(Int8, nzg)
+
+    # 自由排水
+    _, _, rech_free, flux_free, _, _ =
+        soilfluxes(nzg, dt, z₋ₕ, Δz, soiltxt,
+            θ_wtd, transp, 0.0, copy(θ), wtd,
+            5.0, 1.0, 2.0, 0.0, 0.0, 0.0, icefactor;
+            freedrain=true)
+
+    # 非自由排水
+    _, _, rech_nonfree, flux_nonfree, _, _ =
+        soilfluxes(nzg, dt, z₋ₕ, Δz, soiltxt,
+            θ_wtd, transp, 0.0, copy(θ), wtd,
+            5.0, 1.0, 2.0, 0.0, 0.0, 0.0, icefactor;
+            freedrain=false)
+
+    # 非自由排水时底层通量为零（无重力排水）
+    @test flux_nonfree[1] == 0.0
+    @test rech_nonfree == 0.0
+    # 自由排水时底层有向下渗漏（Q[1]<0 表示向下排水）
+    @test rech_free <= 0.0
+end
+
 # 测试三对角矩阵求解器
 @testset "tridag! 函数测试" begin
     # 测试简单3x3系统: [2 1 0; 1 2 1; 0 1 2] * x = [5; 8; 5]  → x = [1; 2; 1]+adjust

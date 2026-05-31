@@ -182,13 +182,13 @@ function rootdepth_main(
         et_c_daily[i, j] += pet_c - watdef * 1.0e3
 
         # 土壤水流计算
-        # updated_o18, transpo18step
+        # updated_o18, transpo18step (isotope tracking removed)
         et_s_step, runoff, rechstep, flux_step, qrfcorrect, updated_smoi =
           soilfluxes(nzg, Δt / steps, z₋ₕ, dz, soiltxt[1, i, j],
             θ_wtd[i, j],
             dθ, dsmoideep, θ[:, i, j], wtd[i, j], ppdrip_step, pet_s,
             fdepth[i, j], qlatstep, qrfstep, floodstep, icefac
-            ; freedrain
+            ; freedrain=Bool(freedrain)
           )
         # θ_eq[:, i, j], o18[:, i, j], o18ratiopp[i, j], tempsfc[i, j],
         # qlato18step, transpo18step
@@ -198,14 +198,14 @@ function rootdepth_main(
         qsrun[i, j] += max(runoff - floodstep, 0.0)  # m
         rech[i, j] += rechstep * 1.0e3
         et_s[i, j] += et_s_step
-        transpo18[i, j] += transpo18step * 1.0e3
+        # transpo18[i, j] += transpo18step * 1.0e3  # isotope tracking removed
         et_s_daily[i, j] += et_s_step
         ppacum[i, j] += ppdrip_step
         qrf[i, j] += qrfcorrect
 
-        # 更新土壤含水量和同位素
+        # 更新土壤含水量
         θ[:, i, j] .= updated_smoi
-        o18[:, i, j] .= updated_o18
+        # o18[:, i, j] .= updated_o18  # isotope tracking removed
 
         # 更新浅层地下水位
         wtd[i, j], rech_additional = updatewtd_shallow(nzg, freedrain, z₋ₕ, dz,
