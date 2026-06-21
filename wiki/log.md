@@ -2,6 +2,23 @@
 
 > 本文件记录 Wiki 的摄取、复核与重大变更，按日期倒序排列。
 
+## [2026-06-21] update | 补齐 4 个 Fortran wiki 页面
+
+- **触发**：用户要求继续翻译未完成的 Fortran 源文件。
+- **新建页面**（4 个，Fortran 原版章节）：
+  1. `wiki/fortran/main.f90.md`（2.5 KB）— 备用单步调度脚本：`LATERAL → GW2RIVER → ROOTDEPTH → FLOODING → RIVERS_KW_FLOOD` 序列，无 module 包裹；详细列出 `qlat*deltat/deltatwtd` 折算、5 天日采样、累计量约定。
+  2. `wiki/fortran/soilfluxes.f90.md`（约 10 KB）— 1D Richards 求解器 `SOILFLUXES`：Campbell K(θ)/D(θ)、三对角组装、顶部入渗能力截断、底部自由排水/受限排水分支、含水量限幅、¹⁸O 同位素段（Majoube 平衡分馏）、侧向流分配；与 `src/SoilFluxes.jl::soilfluxes` 一一对照。
+  3. `wiki/fortran/interp_lib.f90.md`（约 11 KB）— RAMS v4.3.0.2 插值库：13 个子程序（TRNCL1/2、INTRP、INTRRAP、BINOM、GDTOST/2/3、WEIGHTS、HTINT/HTINT2/HTINTCP、AWTCMP）；含六阶中心差分权重展开表与缺失值掩码 `1e30` 约定。
+  4. `wiki/fortran/module_nrtype.f90.md`（约 4 KB）— 数值类型符号（I4B/I2B/I1B/SP/DP/SPC/DPC/LGT）与数学常量（PI/PIO2/TWOPI/SQRT2/EULER，含 DP 版本）；稀疏矩阵派生类型 `sprs2_sp/sprs2_dp`；明确 Julia 端无对应。
+- **更新文档**：
+  - `wiki/_meta/status.md` §3：把 4 个 Fortran 页面从"未建（待补）"改为"已摄取"，补充文件大小与已知问题。
+  - `wiki/index.md` Fortran 原版章节：插入 `main`、`module_nrtype`、`interp_lib`、`soilfluxes` 4 个新条目。
+- **跨语言映射**：4 个 Fortran 页面均已在 `wiki/mapping/julia-fortran-对照.md` 中预登记，本轮摄取与映射保持一致；新增 SOILFLUXES 段对照表的细化（Campbell 公式 / 同位素段 / 限幅 / 侧向流分配）。
+- **已知遗留**（同步登记至 `_meta/status.md` §3 备注列）：
+  - `soilfluxes.f90` 仍在主体代码中维护 ¹⁸O 同位素段，而 `src/SoilFluxes.jl` 同段被注释；迁移路径待 `IsotopeTracing.jl` 串联主循环后恢复。
+  - `interp_lib.f90` 中 `TRNCL1/TRNCL2` 引用未声明的全局变量 `ID`/`JD`，依赖 `module_forcings` 编译上下文。
+  - `main.f90` 无独立 module 与测试入口，依赖调用上下文提供全部变量；其逻辑等价于 `RootDepth.jl` 的单步迭代。
+
 ## [2026-06-21] ingest | ASAP-model wiki 初始化
 
 - **触发**：用户首次请求建立完整 Wiki，覆盖 ASAP-model 的 Julia 与 Fortran 双侧实现。
@@ -23,6 +40,23 @@
 
 - 完成 `mapping/julia-fortran-对照.md`，按函数/子程序级别建立双向链接。
 - 完成 `mapping/algorithm-索引.md`，按算法（Richards、Manning、SW、Priestley-Taylor）反向索引到所有出现该算法的页面。
+
+## [2026-06-21] fix | 10 个源码问题修复 + CLAUDE.md 新建
+
+- **触发**：D1 lint 识别的 10 个源码问题，用户要求全部修复（忽略 `src/backup/` 目录）+ 新增 `CLAUDE.md`。
+- **修复明细**：
+  1. ✅ `SoilParameters.init_soil_param.fieldcp` — 补 Fortran 公式 `θ_fc = θ_sat · (ψ_sat / -3.366)^(1/b)`；新增 12 条 `test/test_soil_parameters.jl` 断言。
+  2. ✅ `SoilFluxes.jl` 氧 18 段 — 清理 docstring（移除 o18 相关参数条目），清理 `RootDepth.jl` 中 `# transpo18[i, j] += ...` 等注释。
+  3. ✅ `Modules.jl` 悬空 export — 移除 `wtable!` / `updatewtd!`，加注释说明被替代方案。
+  4. ✅ `ASAP.jl` 悬空 export — 移除 `updatewtd_qlat`。
+  5. ✅ `extraction.kroot = k - 1` — 修正误导性注释，澄清 Fortran 1-based 一致性。
+  6. ✅ `updatewtd_shallow.flag` — 加注释确认每轮迭代 flag 重置为 0，`kwt==1` 路径不残留。
+  7. ✅ `Interception.minpprate` — 修正 docstring（`minpprate` 是模块常量，非形参）。
+  8. ✅ `potevap_shutteworth_wallace` 拼写错误 — 新增 `potevap_shuttleworth_wallace = potevap_shutteworth_wallace` 别名；新增 `test/test_evapotranspiration.jl` 别名测试。
+  9. ✅ `SoilInitialization.DataFrames` 悬空 import — 删除 `using DataFrames`，同步移除 `Project.toml` 中 `DataFrames = "1.7.0"` 依赖与 `compat` 条目。
+  10. ✅ `rivers_*` 形参 `length` → `river_length` — 全链路重命名（4 处使用）。
+- **新增文件**：`CLAUDE.md`（项目根，10 个章节，含 Wiki 操作指南、源码约定、已知问题清单）。
+- **测试结果**：`Pkg.test()` 全部通过（共 32 个测试集；包括修复后的 fieldcp 数值断言、别名一致性测试）。
 
 ## [2026-06-21] lint | Wiki 质量检查与修复
 

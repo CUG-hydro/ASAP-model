@@ -47,7 +47,10 @@
 | `fortran/module_parallel.md` | `fortran/module_parallel.f90` (23.5 KB) | 已摄取 | — |
 | `fortran/module_rootdepth.md` | `fortran/module_rootdepth.f90` (65.5 KB) | 已摄取 | — |
 | `fortran/module_wtable.md` | `fortran/module_wtable.f90` (51.8 KB) | 已摄取 | — |
-| `fortran/main.f90` / `interp_lib.f90` / `module_nrtype.f90` / `soilfluxes.f90` | — | 未建（待补） | 阶段 B 计划纳入映射 |
+| `fortran/main.f90.md` | `fortran/main.f90` (2.5 KB, 58 行) | 已摄取 | 备用单步调度脚本：LATERAL→GW2RIVER→ROOTDEPTH→FLOODING→RIVERS_KW_FLOOD；无 module 包裹；与 `module_driver.f90` 主循环等价 |
+| `fortran/soilfluxes.f90.md` | `fortran/soilfluxes.f90` (21 KB, 609 行) | 已摄取 | 1D Richards 求解器 `SOILFLUXES`（Crank-Nicolson 三对角 + ¹⁸O 同位素段）；对应 `src/SoilFluxes.jl::soilfluxes`；Julia 端同位素段已注释 |
+| `fortran/interp_lib.f90.md` | `fortran/interp_lib.f90` (20 KB, 690 行) | 已摄取 | RAMS v4.3.0.2 插值库：13 个子程序（TRNCL1/2、INTRP、INTRRAP、BINOM、GDTOST/2/3、WEIGHTS、HTINT/2/HTINTCP、AWTCMP）；Julia 端无对应 |
+| `fortran/module_nrtype.f90.md` | `fortran/module_nrtype.f90` (1.9 KB, 36 行) | 已摄取 | 数值类型与常量（I4B/SP/DP/EULER 等）+ 稀疏矩阵派生类型；Julia 端无对应 |
 
 ## 4. 跨语言映射（阶段 B）
 

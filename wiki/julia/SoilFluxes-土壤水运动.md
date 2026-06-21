@@ -111,8 +111,8 @@ $$
 
 ## 7. 已知问题与备注
 
-1. **悬空 docstring**：`tridag!` 文档块中 `# 参数`/`# 返回` 注释了但未实际导出该函数；模块 `module SoilFluxes` 包裹未在 sqz 输出中体现，需在仓库中确认是否使用 `export soilfluxes, tridag!`（src/SoilFluxes.jl 末尾无 export 段，属有意隐藏内部 API）。
-2. **遗留死代码**：`o18ratio = o18 ./ θ` 与整段氧18同位素计算被注释（src/SoilFluxes.jl 末 30 行），同位素过程尚未移植。
+1. **docstring 清理（2026-06-21）**：函数 docstring 已移除氧 18 相关形参（`o18`、`precipo18`、`tempsfc`、`qlato18`、`transpo18`）的条目，返回值改为 `(et_s, runoff, rech, flux, qrfcorrect, updated_θ)`；`RootDepth.jl` 中 `# transpo18[i, j] += ...` 与 `# o18[:, i, j] .= updated_o18` 等注释段已清理。
+2. **遗留死代码（部分清理）**：`o18ratio = o18 ./ θ` 等 9 行氧 18 同位素三对角求解代码仍保留在函数尾部（src/SoilFluxes.jl 末段）作为参考，待 `IsotopeTracing` 模块与主循环完全串联后恢复。
 3. **`smoiwtd` 未回写**：注释 `# smoiwtd = smoiwtd - Q[1]` 表明自由排水时地下水位含水量的更新被推迟到调用方（避免双重计算）。
 4. **`fdepth` 含义模糊**：Fortran 中 `fd` 为根系深度因子，本模块既用于 `Ksat/θsat/ψsat` 缩放，又作为 `pet_s_actual` 判断的隐含阈值（`θ_cp` 比较），需保持调用一致性。
 5. **`jwt` 变量未在签名中**：`jwt` 通过 `wtd` 与 `z₋ₕ` 在函数内部反算（搜索 `for k in max(jwt-1,2)` 等），是耦合 Fortran 习惯的遗留。

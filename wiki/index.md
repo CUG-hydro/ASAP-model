@@ -43,13 +43,17 @@
 ## Fortran 原版
 
 - [README](./fortran/README.md) — Fortran 源目录总览
+- [main](./fortran/main.f90.md) — 备用单步调度脚本（LATERAL→GW2RIVER→ROOTDEPTH→FLOODING→RIVERS_KW_FLOOD）
 - [module_driver](./fortran/module_driver.md) — 主驱动模块
 - [module_forcings](./fortran/module_forcings.md) — 强迫数据处理
 - [module_initial](./fortran/module_initial.md) — 初始化与土壤参数
 - [module_io](./fortran/module_io.md) — 输入/输出
+- [module_nrtype](./fortran/module_nrtype.f90.md) — 数值类型与常量定义（I4B/SP/DP/EULER 等）
 - [module_parallel](./fortran/module_parallel.md) — 并行化
 - [module_rootdepth](./fortran/module_rootdepth.md) — 根系深度主算法
 - [module_wtable](./fortran/module_wtable.md) — 地下水位与河流耦合
+- [interp_lib](./fortran/interp_lib.f90.md) — RAMS 大气模式插值库（13 子程序：TRNCL/INTRP/GDTOST/HTINT/AWTCMP）
+- [soilfluxes](./fortran/soilfluxes.f90.md) — 1D Richards 求解器 SOILFLUXES（Crank-Nicolson 三对角 + ¹⁸O 段）
 
 ## 跨语言映射
 
