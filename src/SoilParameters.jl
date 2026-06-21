@@ -3,7 +3,8 @@
 定义各种土壤类型的参数和常数
 """
 
-export SoilType, get_soil_params, init_soil_param, cal_K
+export SoilType, get_soil_params, init_soil_param, cal_K,
+  slcons, slmsts, slpots, slbs, soilcp
 
 # 常数定义
 const NVTYP = 30  # 植被类型数量
@@ -57,23 +58,34 @@ function get_soil_params(soil_type::Int)
 end
 
 """
-初始化土壤参数，计算凋萎点
+初始化土壤参数，计算凋萎点与田间持水量
 
 # 参数
 - `nzg::Int`: 土壤层数
 
 # 返回
-- `Array{Float64,2}`: 田间持水量数组 (nzg × nstyp)
+- `fieldcp::Matrix{Float64}`: 田间持水量数组 (nzg × nstyp)
+- `θ_wilt::Vector{Float64}`: 各土壤类型凋萎点含水量
+
+# 说明
+田间持水量采用 Campbell 公式：θ_fc = θ_sat · (ψ_sat / ψ_fc)^(1/b)
+其中 ψ_fc = -3.366 m（即 POTFC，来自 extraction.jl）。
+该公式与 Fortran `module_rootdepth.f90::INIT_SOIL_PARAM` 中 fieldcp 计算一致。
 """
 function init_soil_param(nzg::Int)
   POTWILT_LOCAL = -153.0  # 凋萎点基质势
+  POTFC_LOCAL = -3.366    # 田间持水量基质势
 
   fieldcp = zeros(Float64, nzg, NSTYP)
   θ_wilt = zeros(Float64, NSTYP)
 
-  # 计算各土壤类型的凋萎点含水量
+  # 计算各土壤类型的凋萎点与田间持水量
   for nsoil in 1:NSTYP
     θ_wilt[nsoil] = θSAT[nsoil] * (ΨSAT[nsoil] / POTWILT_LOCAL)^(1.0 / SLBS[nsoil])
+    # 田间持水量：每层取相同值（不考虑深度衰减，深度因子在调用方处理）
+    for k in 1:nzg
+      fieldcp[k, nsoil] = θSAT[nsoil] * (ΨSAT[nsoil] / POTFC_LOCAL)^(1.0 / SLBS[nsoil])
+    end
   end
   return fieldcp, θ_wilt
 end
@@ -94,3 +106,33 @@ end
 function cal_K(θ::Float64, θ_sat::Float64, Ksat::Float64, b::Float64)
   return Ksat * (θ / θ_sat)^(2.0 * b + 3.0)
 end
+
+
+# ---------------------------------------------------------------------------
+# Fortran `module_rootdepth` accessor aliases
+# ---------------------------------------------------------------------------
+# The original Fortran code uses the following 1-based scalar accessors
+# (see `fortran/module_rootdepth.f90`):
+#   slcons(n)  -> Ksat
+#   slmsts(n)  -> θ_sat
+#   slpots(n)  -> ψ_sat
+#   slbs(n)    -> Campbell b parameter
+#   soilcp(n)  -> θ_cp (residual moisture)
+# These thin wrappers keep the Julia ↔ Fortran port one-to-one, and are
+# convenient to call inside hot inner loops (e.g. `eqsoilmoisturetheor`).
+# ---------------------------------------------------------------------------
+
+"Fortran `slcons(n)`: 饱和导水率 Ksat (m/s)。索引 1-13。"
+slcons(n::Int) = KSAT[n]
+
+"Fortran `slmsts(n)`: 饱和含水量 θ_sat (m³/m³)。索引 1-13。"
+slmsts(n::Int) = θSAT[n]
+
+"Fortran `slpots(n)`: 饱和基质势 ψ_sat (m)。索引 1-13。"
+slpots(n::Int) = ΨSAT[n]
+
+"Fortran `slbs(n)`: Campbell b 参数。索引 1-13。"
+slbs(n::Int) = SLBS[n]
+
+"Fortran `soilcp(n)`: 残余含水量 θ_cp (m³/m³)。索引 1-13。"
+soilcp(n::Int) = SOILCP[n]

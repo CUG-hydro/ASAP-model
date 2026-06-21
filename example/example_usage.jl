@@ -9,11 +9,11 @@ push!(LOAD_PATH, ".")
 # 导入各个模块
 
 println("ASAP 模型 Julia 版本使用示例")
-println("=" ^ 40)
+println(repeat("=", 40))
 
 # 1. 土壤参数示例
 println("\n1. 土壤参数模块示例:")
-println("-" ^ 20)
+println(repeat("-", 20))
 soil_type = 5  # 第5种土壤类型
 soil = get_soil_params(soil_type)
 println("土壤类型 $soil_type 的参数:")
@@ -28,7 +28,7 @@ println("  当前导水率: $k")
 
 # 2. 土壤层初始化示例
 println("\n2. 土壤层初始化示例:")
-println("-" ^ 20)
+println(repeat("-", 20))
 nzg = 10  # 10层土壤
 slz, dz = initializesoildepth(nzg)
 println("土壤层深度 (m):")
@@ -38,7 +38,7 @@ end
 
 # 3. 蒸散发计算示例
 println("\n3. 蒸散发计算示例:")
-println("-" ^ 20)
+println(repeat("-", 20))
 # 设置气象条件
 tempk = 298.15      # 温度 25°C
 rad = 200.0         # 净辐射 200 W/m²
@@ -65,7 +65,7 @@ println("Shuttleworth-Wallace 截留蒸发: $(round(pet_i, digits=3)) mm/h")
 
 # 4. 植被截留示例
 println("\n4. 植被截留示例:")
-println("-" ^ 20)
+println(repeat("-", 20))
 minpprate = 0.01    # 最小降水率阈值
 precip = 5.0        # 降水量 5 mm
 lai = 3.0           # 叶面积指数 3
@@ -84,7 +84,7 @@ println("  新截留量: $(round(new_intercepstore, digits=3)) mm")
 
 # 5. 参数初始化示例
 println("\n5. 土壤参数初始化示例:")
-println("-" ^ 20)
+println(repeat("-", 20))
 fieldcp, slwilt = init_soil_param(nzg)
 println("田间持水量矩阵大小: $(size(fieldcp))")
 println("凋萎点含水量向量长度: $(length(slwilt))")
@@ -93,7 +93,7 @@ for i in 1:3
     println("  土壤类型 $i: $(round(slwilt[i], digits=4))")
 end
 
-println("\n" * "=" ^ 40)
+println("\n" * repeat("=", 40))
 println("示例运行完成！")
 println("所有模块都可以正常使用。")
 println("请参考各模块的文档了解更多功能。")

@@ -23,7 +23,14 @@ include("modules/Modules.jl")
 @reexport using .Evapotranspiration
 
 
-export updatewtd_shallow, updatewtd_qlat
+export updatewtd_shallow
 export rootdepth_main
+export zbrent
+export eqsoilmoisturetheor
+
+# NetCDF I/O (read-only subset of fortran/module_io.f90)
+include("io/NetCDF.jl")
+using .NetCDFIO: read_initial, read_wtdnc
+export read_initial, read_wtdnc
 
 end # module ASAP

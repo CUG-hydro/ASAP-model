@@ -30,6 +30,9 @@ const POTFC = -3.366    # 田间持水量水势 (m)
 - `fdepth::Float64`: 根系深度因子 (m)
 - `icefac::Vector{Int8}`: 冰冻因子 [nzg]
 
+注：`fieldcp::Matrix{Float64}` 已从函数签名移除（保留在 `init_soil_param` 输出，
+但 `extraction` 改为基于 `θ_fc = θ_sat * (ψ_sat / POTFC)^(1/b)` 自计算田间持水量）。
+
 # 返回
 - `Tuple`: (pet_s, pet_c, watdef, dsmoi, dsmoideep)
 """
@@ -58,14 +61,17 @@ function extraction(
   end
 
   # 计算根系最低层
+  # 注：循环到第一个非活跃层（inactivedays[k] > maxinactivedays）时 break，
+  # 此时 k 是第一个非活跃层索引；kroot = k - 1 恰好是最后一个活跃层。
+  # 这与 Fortran `module_rootdepth.f90::EXTRACTION` 中的循环语义一致（1-based）。
   kroot = 0
   for k in 1:nzg
     if inactivedays[k] <= maxinactivedays
-      kroot = k - 1 # 为何返回的是k-1，而不是k? 从k应该更合理
+      kroot = k - 1 # 最后一个活跃层索引
       break
     end
   end
-  # 现在的代码，根系没有直接从地下水中抽水
+  # 当前的实现：根系不直接从地下水中抽水（地下水位层 kwt 之下被排除）
 
   # 计算各层的水分提取便利性
   for k in max(kwtd, kroot, 1):nzg

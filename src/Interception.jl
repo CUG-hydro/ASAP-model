@@ -5,8 +5,9 @@ const minpprate = 0.01 # (mm per timestep) above which there is no intercpetion
 """
 计算植被截留和截留蒸发
 
+使用模块常量 `minpprate`（最小降水率阈值，mm/timestep）作为分支判断。
+
 # 参数
-- `minpprate::Float64`: 最小降水率阈值 (mm/timestep)
 - `precip::Float64`: 降水量 (mm)
 - `lai::Float64`: 叶面积指数
 - `intercepstore::Float64`: 截留水量 (mm)

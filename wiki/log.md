@@ -2,6 +2,44 @@
 
 > 本文件记录 Wiki 的摄取、复核与重大变更，按日期倒序排列。
 
+## [2026-06-22] policy | CLAUDE.md §6.1 — 现阶段不实现的范围
+
+- **触发**：用户明确"现阶段 NetCDF / MPI / 同位素均不需要实现"。
+- **变更**：
+  - `CLAUDE.md` 新增 §6.1「现阶段不实现的范围（2026-06-22 起生效）」，明确禁止：
+    - NetCDF I/O 扩展（仅 `src/io/NetCDF.jl::NetCDFIO` 的 P0 子集 `read_initial` / `read_wtdnc` 为当前终点）
+    - MPI 并行化（Julia 单进程，禁止引入 `MPI.jl`）
+    - ¹⁸O 同位素串联（`SoilFluxes.jl` 末段三对角 + `RootDepth.jl` 中 `lateral_isotope!` / `updatedeepwtable!` 调用维持禁用）
+  - `CLAUDE.md` §1 项目背景：18O 物理过程行加注"当前阶段不串联，见 §6.1"
+  - `CLAUDE.md` §7 时间戳：2026-06-21 → 2026-06-22
+  - `CLAUDE.md` §9 跨语言映射 `soilfluxes` 行加注"现阶段不串联，见 §6.1"
+- **解锁条件**：后续若需启用任一功能，必须由用户明确重新授权，并在 `wiki/log.md` 追加 `[YYYY-MM-DD] enable | 范围` 条目。
+
+## [2026-06-22] update | Phase 3 — NetCDF I/O（P0 子集）落地
+
+- **触发**：用户任务 `Phase 3: 翻译 module_io.f90 NetCDF I/O`，仅实现读取子集。
+- **新增源码**：
+  - `src/io/NetCDF.jl`（约 115 行）— 新子模块 `NetCDFIO`，
+    实现 `read_initial(path) -> NamedTuple` 与 `read_wtdnc(path) -> Matrix{Float64}`。
+    对应 Fortran `module_io.f90::READINITIAL`（L10）与 `READWTDNC`（L309）。
+- **修改源码**：
+  - `src/ASAP.jl` 末尾 `include("io/NetCDF.jl")` + `using .NetCDFIO: read_initial, read_wtdnc` + `export`。
+  - `Project.toml`：
+    - `[deps]` 新增 `NCDatasets = "85f8d34a-cbdd-5861-8df4-14fed0d494ab"`。
+    - `[compat]` 新增 `NCDatasets = "0.12, 0.13, 0.14"` 与 `julia = "1.6"`（既有约束未修改，仅追加）。
+    - `[extras]` 与 `[targets]` 新增 `Statistics` 以解 `test_eqsoilmoisture.jl` 的 `using Statistics`（Phase 2 遗留的传递性依赖）。
+- **新增测试**：`test/test_io_netcdf.jl`，5 个 testset 共 12 个断言覆盖
+  - `read_wtdnc` 圆环 + 混合正负边界
+  - `read_initial` 圆环 + `fdepth` 夹断（`< 1e-6 → 100`）+ 地形/掩码（`< -1e5 → 0/0`）
+- **新增 wiki 页面**：`wiki/julia/io-NetCDF.md`（按 §3 7 段模板），
+  - §7 已知问题：NCDatasets v0.14 API 差异（`v[:]` 会展平、必须 `v[:, :]`）、
+    地形变量名 `"topo"` 是 Julia 约定而非 Fortran 约定、MPI 分发省略、
+    写出整段未实现。
+- **测试结果**：`Pkg.test()` 全部通过（既有 32+ 测试 + 新增 5 个 testset = 12 断言）。
+- **未实现（P1/P2）**：`READLATLON` / `READVEG` / `READHVEG` /
+  `READSMOIEQ` / `READFLOWDIRECTION` / `READRIVERPARAMETERS` /
+  `READHISTORYNC*` / 全部写出 — 留待后续 PR。
+
 ## [2026-06-21] update | 补齐 4 个 Fortran wiki 页面
 
 - **触发**：用户要求继续翻译未完成的 Fortran 源文件。

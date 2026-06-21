@@ -34,6 +34,7 @@
 | `julia/flooding-洪泛漫流.md` | `src/modules/flooding.jl` | 已摄取 | `ntsplit=1` 固定；`delsfcwat<0` 仅源端约束；`bfd` 悬空参数 |
 | `julia/IsotopeTracing-同位素追踪.md` | `src/modules/Tracing/IsotopeTracing.jl` | 已摄取 | 4 方向不含对角线；`*sum` 数组持续累加 |
 | `julia/modules-水位模块聚合.md` | `src/modules/Modules.jl` | 已摄取（含悬空 export 备注） | `wtable!`/`updatewtd!` 悬空 export（实现位于 `backup/`）；`helper.jl` 注释掉 |
+| `julia/io-NetCDF.md` | `src/io/NetCDF.jl` | 已摄取（仅 P0 子集） | 仅实现 `read_initial` / `read_wtdnc`；P1/P2 子程序（`READLATLON`/`READVEG`/`READHISTORYNC`/全部写出）未实现 |
 
 ## 3. Fortran 原版页面
 

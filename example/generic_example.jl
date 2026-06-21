@@ -4,13 +4,13 @@ ASAP 模型泛型类型参数示例
 """
 
 println("🧮 ASAP 模型泛型类型参数示例")
-println("=" * 50)
+println(repeat("=", 50))
 using ASAP
 
 # 导入初始化模块
 
 println("\n📊 演示不同数值精度类型的使用")
-println("-" * 40)
+println(repeat("-", 40))
 
 # 模型参数设置
 is, ie = 1, 2
@@ -121,7 +121,7 @@ catch e
 end
 
 println("\n2️⃣  使用 Float32 类型 (高性能)")
-println("-" * 25)
+println(repeat("-", 25))
 
 # Float32 类型数据 
 slz_32 = Vector{Float32}(slz_f64)
@@ -181,5 +181,5 @@ println("• 性能优化: Float32 可减少内存使用和提高计算速度")
 println("• 代码复用: 同一函数支持多种数值精度")
 println("• 灵活性: 可根据精度需求选择合适的类型")
 
-println("\n" * "=" * 50)
+println("\n" * repeat("=", 50))
 println("🎉 泛型类型参数示例完成")

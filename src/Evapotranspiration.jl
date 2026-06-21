@@ -4,7 +4,8 @@
 """
 module Evapotranspiration
 
-export potevap_priestly_taylor, potevap_penman_monteith, potevap_shutteworth_wallace
+export potevap_priestly_taylor, potevap_penman_monteith, potevap_shutteworth_wallace,
+       potevap_shuttleworth_wallace  # 拼写修正的别名（推荐使用）
 
 
 const CP = 1013.0  # J/kg/K
@@ -284,5 +285,16 @@ function potevap_shutteworth_wallace(Δt::Float64, tempk::Float64, rad::Float64,
     return (Δ, γ, λ, ra_a, ra_c, rs_c, R_a, R_s, pet_s, pet_c, pet_w, pet_i)
   end
 end
+
+"""
+    potevap_shuttleworth_wallace(args...; kwargs...)
+
+Shuttleworth-Wallace 双源法的拼写修正别名。
+
+原名 `potevap_shutteworth_wallace` 存在拼写错误（应为 "Shuttleworth"），但因下游调用方
+（`src/RootDepth.jl`、`example/*.jl`、`test/*.jl`）已大量引用，保留原拼写作为兼容入口。
+**推荐新代码使用本别名** `potevap_shuttleworth_wallace`。
+"""
+const potevap_shuttleworth_wallace = potevap_shutteworth_wallace
 
 end # module Evapotranspiration

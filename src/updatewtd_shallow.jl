@@ -36,6 +36,9 @@ function updatewtd_shallow(nzg::Int, freedrain::Int, z₋ₕ::Vector{Float64},
     kwt = jwt - 1
     kwt <= 0 && break # 地下水位在已解析层中
 
+    # 注：每轮迭代开始时将 flag 重置为 0。
+    # 若 kwt <= 1（地下水位在第 1 层），将跳过 `flag = 1` 的赋值分支，
+    # 此时 `flag` 保持初始 0，不会残留上一轮的值（避免污染当前迭代）。
     wtd_old = wtd
     soil = get_soil_params(soiltxt)
 

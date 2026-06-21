@@ -3,17 +3,20 @@ export soilfluxes, tridag
 """
 计算土壤中的水分通量和运动
 
+注意：氧 18 同位素追踪（o18、precipo18、tempsfc、qlato18、transpo18）当前未启用。
+历史代码保留在函数尾部作为参考，待 `IsotopeTracing` 模块与主循环完全串联后恢复。
+详见 `wiki/julia/SoilFluxes-土壤水运动.md`「已知问题」。
+
 # 参数
 - `nzg::Int`: 土壤层数
-- `freedrain::Int`: 自由排水标志
-- `dtll::Float64`: 时间步长 (s)
-- `slz::Vector{Float64}`: 土壤层深度 (m) [nzg+1]
-- `dz::Vector{Float64}`: 土壤层厚度 (m) [nzg]
+- `dt::Float64`: 时间步长 (s)
+- `z₋ₕ::Vector{Float64}`: 土壤层深度 (m) [nzg+1]
+- `Δz::Vector{Float64}`: 土壤层厚度 (m) [nzg]
 - `soiltxt::Int`: 土壤类型
-- `smoiwtd::Float64`: 地下水含水量
+- `θ_wtd::Float64`: 地下水含水量
 - `transp::Vector{Float64}`: 蒸腾提取量 (m) [nzg]
 - `transpdeep::Float64`: 深层蒸腾 (m)
-- `smoi::Vector{Float64}`: 土壤含水量 [nzg]
+- `θ::Vector{Float64}`: 土壤含水量 [nzg]
 - `wtd::Float64`: 地下水位深度 (m)
 - `precip::Float64`: 降水 (mm)
 - `pet_s::Float64`: 土壤蒸发潜力 (mm)
@@ -22,15 +25,10 @@ export soilfluxes, tridag
 - `qrf::Float64`: 河流反馈流 (m)
 - `flood::Float64`: 洪水深度 (m)
 - `icefactor::Vector{Int8}`: 冰冻因子 [nzg]
-- `smoieq::Vector{Float64}`: 平衡含水量 [nzg]
-- `o18::Vector{Float64}`: 氧18同位素 [nzg]
-- `precipo18::Float64`: 降水氧18
-- `tempsfc::Float64`: 地表温度 (K)
-- `qlato18::Float64`: 侧向流氧18
-- `transpo18::Float64`: 蒸腾氧18
+- `freedrain::Bool`: 自由排水标志（关键字参数，默认 true）
 
 # 返回
-- `Tuple`: (et_s, runoff, rech, flux, qrfcorrect, transpo18, updated_smoi, updated_o18)
+- `Tuple`: (et_s, runoff, rech, flux, qrfcorrect, updated_θ)
 """
 function soilfluxes(
   nzg::Int, dt::Float64,

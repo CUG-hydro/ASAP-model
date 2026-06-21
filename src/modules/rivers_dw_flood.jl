@@ -10,7 +10,7 @@ function rivers_dw_flood!(
   fd::Matrix{Int}, bfd::Matrix{Int}, qnew::M,
   qs::M, qrf::M, delsfcwat::M,
   slope::M, depth::M, width::M,
-  length::M, maxdepth::M, area::M,
+  river_length::M, maxdepth::M, area::M,
   riverarea::M, floodarea::M, riverchannel::M,
   qmean::M, floodheight::M, topo::M
 ) where {T<:AbstractFloat,M<:Matrix{T}}
@@ -68,12 +68,12 @@ function rivers_dw_flood!(
 
       z0 = topo[i, j] - maxdepth[i, j] + depth[i, j]
       z1 = topo[i1, j1] - maxdepth[i1, j1] + max(depth[i1, j1], 0.0)
-      slope_for = (z1 - z0) / (0.5 * (length[i, j] + length[i1, j1]))
+      slope_for = (z1 - z0) / (0.5 * (river_length[i, j] + river_length[i1, j1]))
 
       if bfd[i, j] > 0
         i2, j2 = flowdir(bfd, i, j)
         z2 = topo[i2, j2] - maxdepth[i2, j2] + max(depth[i2, j2], 0.0)
-        slope_back = (z0 - z2) / (0.5 * (length[i2, j2] + length[i, j]))
+        slope_back = (z0 - z2) / (0.5 * (river_length[i2, j2] + river_length[i, j]))
         slope_inst = 0.5 * (slope_for + slope_back)
       else
         slope_inst = slope_for
@@ -90,7 +90,7 @@ function rivers_dw_flood!(
       # 非洪水条件下使用运动波
       R = A / (2.0 * depth[i, j] + width[i, j])
       speed = (R^(2.0 / 3.0)) * sqrt(slope[i, j]) / 0.03
-      speed = clamp(speed, 0.01, length[i, j] / δt)
+      speed = clamp(speed, 0.01, river_length[i, j] / δt)
       qnew[i, j] = speed * A
     end
   end

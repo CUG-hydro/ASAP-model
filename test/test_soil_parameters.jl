@@ -40,6 +40,17 @@ end
         soil = get_soil_params(i)
         @test θ_wilt[i] < soil.θ_sat
     end
+
+    # fieldcp 应使用 Campbell 公式 θ_fc = θ_sat · (ψ_sat / -3.366)^(1/b)
+    @test all(fieldcp .> 0.0)
+    @test all(fieldcp .< [soil.θ_sat for soil in get_soil_params.(1:ASAP.NSTYP)]')
+    for nsoil in 1:ASAP.NSTYP
+        soil = get_soil_params(nsoil)
+        expected_fc = soil.θ_sat * (soil.ψsat / -3.366)^(1.0 / soil.b)
+        @test all(fieldcp[:, nsoil] .≈ expected_fc)
+        # 田间持水量应大于凋萎点
+        @test expected_fc > θ_wilt[nsoil]
+    end
 end
 
 # 测试导水率计算

@@ -82,3 +82,16 @@ end
     @test pet_c == 0.0
     @test pet_i == 0.0
 end
+
+# 测试拼写修正别名（推荐使用）
+@testset "拼写修正别名" begin
+    # potevap_shuttleworth_wallace 是 potevap_shutteworth_wallace 的别名
+    @test potevap_shuttleworth_wallace === potevap_shutteworth_wallace
+
+    # 调用别名结果应与原函数一致
+    result_alias = potevap_shuttleworth_wallace(3600.0, 298.15, 200.0, 300.0,
+        101325.0, 0.01, 2.0, 3.0, 5.0, 15.0, 0)
+    result_orig = potevap_shutteworth_wallace(3600.0, 298.15, 200.0, 300.0,
+        101325.0, 0.01, 2.0, 3.0, 5.0, 15.0, 0)
+    @test result_alias == result_orig
+end
