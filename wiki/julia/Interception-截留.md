@@ -42,22 +42,22 @@ $$S_{t+1} = S_t + P - E_i$$
 
 ## 4. 关键变量与单位
 
-| 符号 | 含义 | 单位 |
-|---|---|---|
-| `precip` | 单步降水量 | mm |
-| `lai` | 叶面积指数 | m²/m² |
-| `intercepstore` | 当前冠层截留量 $S_t$ | mm |
-| `pet_i` | 截留蒸发潜力（来自 SW 模型） | mm |
-| `minpprate` | 最小降水率阈值 $P_{min}$ | mm/timestep |
-| `intercepmax` | 截留容量 $S_{max}=0.2 LAI$ | mm |
-| `ppdrip` | 穿透降水 $P_d$ | mm |
-| `et_i` | 截留蒸发 $E_i$ | mm |
+| 符号            | 含义                         | 单位        |
+| --------------- | ---------------------------- | ----------- |
+| `precip`        | 单步降水量                   | mm          |
+| `lai`           | 叶面积指数                   | m²/m²       |
+| `intercepstore` | 当前冠层截留量 $S_t$         | mm          |
+| `pet_i`         | 截留蒸发潜力（来自 SW 模型） | mm          |
+| `minpprate`     | 最小降水率阈值 $P_{min}$     | mm/timestep |
+| `intercepmax`   | 截留容量 $S_{max}=0.2 LAI$   | mm          |
+| `ppdrip`        | 穿透降水 $P_d$               | mm          |
+| `et_i`          | 截留蒸发 $E_i$               | mm          |
 
 ## 5. 与 Fortran 对应
 
-| Fortran 子程序 | Julia 函数 | 差异 |
-|---|---|---|
-| `INTERCEPTION`（soilfluxes.f90） | `interception` | Fortran 在子程序内通过 `MINPPRATE` 全局参数判定阈值；Julia 文档列出但函数体未读取，存在**接口不一致**风险 |
+| Fortran 子程序                   | Julia 函数     | 差异                                                                                                                                     |
+| -------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `INTERCEPTION`（soilfluxes.f90） | `interception` | Fortran 在子程序内通过 `MINPPRATE` 全局参数判定阈值；Julia 用 `const minpprate = 0.01` 模块常量（L3）+ 函数体 L33/L44 显式消费，接口对齐 |
 
 ## 6. 引用
 

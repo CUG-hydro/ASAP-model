@@ -35,24 +35,24 @@ $$\theta_{wilt} = \theta_{sat} \left(\frac{\psi_{sat}}{\psi_{wilt}}\right)^{1/b}
 其中 $\psi_{wilt} = -153.0\ \text{m}$（POTWILT_LOCAL）。
 
 ## 4. 关键变量与单位
-| 符号 | 含义 | 单位 |
-|---|---|---|
-| θ_sat | 饱和体积含水量 | m³/m³ |
-| θ_cp | 残余/凋萎含水量下限 | m³/m³ |
-| θ_wilt | 凋萎点含水量 | m³/m³ |
-| ψsat | 饱和基质势 | m |
-| Ksat | 饱和水力导水率 | m/s |
-| K_latfactor | 侧向流比例因子（Klat/Ksat） | — |
-| b | Clapp–Hornberger 经验指数 | — |
-| NVTYP | 植被类型数量（=30） | — |
-| NSTYP | 土壤类型数量（=13） | — |
+| 符号        | 含义                        | 单位  |
+| ----------- | --------------------------- | ----- |
+| θ_sat       | 饱和体积含水量              | m³/m³ |
+| θ_cp        | 残余/凋萎含水量下限         | m³/m³ |
+| θ_wilt      | 凋萎点含水量                | m³/m³ |
+| ψsat        | 饱和基质势                  | m     |
+| Ksat        | 饱和水力导水率              | m/s   |
+| K_latfactor | 侧向流比例因子（Klat/Ksat） | —     |
+| b           | Clapp–Hornberger 经验指数   | —     |
+| NVTYP       | 植被类型数量（=30）         | —     |
+| NSTYP       | 土壤类型数量（=13）         | —     |
 
 ## 5. 与 Fortran 对应
-| Fortran 子程序 | Julia 函数 | 差异 |
-|---|---|---|
+| Fortran 子程序                                                       | Julia 函数                                    | 差异                                                    |
+| -------------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------- |
 | module_initial 中的 `θSAT/SOILCP/SLBS/KSAT/ΨSAT/KLATFACTOR` 全局数组 | `const θSAT/SOILCP/SLBS/KSAT/ΨSAT/KLATFACTOR` | Julia 使用 Unicode 标识符，Fortran 数组索引从 1，值一致 |
-| `calK` / Campbell 导水率子程序 | `cal_K` | 参数顺序、公式完全一致；Julia 显式声明 Float64 类型 |
-| 凋萎点初始化块 | `init_soil_param` | 公式相同；Julia 返回元组 `(fieldcp, θ_wilt)` |
+| `calK` / Campbell 导水率子程序                                       | `cal_K`                                       | 参数顺序、公式完全一致；Julia 显式声明 Float64 类型     |
+| 凋萎点初始化块                                                       | `init_soil_param`                             | 公式相同；Julia 返回元组 `(fieldcp, θ_wilt)`            |
 
 ## 6. 引用
 - 常量定义：src/SoilParameters.jl:L8-L10（NVTYP、NSTYP）
@@ -66,6 +66,5 @@ $$\theta_{wilt} = \theta_{sat} \left(\frac{\psi_{sat}}{\psi_{wilt}}\right)^{1/b}
 ## 7. 已知问题与备注
 - `get_soil_params` 中 `θ_wilt` 字段写死为 0.0（L51），实际值需通过 `init_soil_param` 单独计算后回填，存在两阶段初始化耦合。
 - `export SoilType, get_soil_params, init_soil_param, cal_K`（L6）在模块内 export，但 `ASAP.jl` 未将 SoilParameters 子模块 `@reexport`，外部需 `using ASAP` 直接可见；调用者更常通过 `get_soil_params(:)` 取值。
-- `init_soil_param` 返回的 `fieldcp` 数组当前始终为 0（L71），未被填充，疑似占位实现。
+- ✅ `init_soil_param.fieldcp` 已实现（2026-06-22 修复）：`src/SoilParameters.jl:73-L78` 按 Fortran `module_rootdepth.f90::INIT_SOIL_PARAM` 公式填充 `θ_fc = θ_sat · (ψ_sat / -3.366)^(1/b)`，对应单元测试 `test/test_soil_parameters.jl` L40-L52 的数值断言。
 - 文档：docs/土壤水运动_ASAP.typ 包含 Campbell 公式背景说明。
-- 备注：DataFrames 在 SoilInitialization.jl 中被 `using`（L1）但当前实现并未使用（虽然 SoilInitialization 在 ASAP.jl L20 中被 include 后，DataFrames 仅作为传递依赖），属于悬空 import。

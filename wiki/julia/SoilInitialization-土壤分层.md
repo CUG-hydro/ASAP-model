@@ -31,20 +31,20 @@ $$dz_k = \tfrac{1}{2}(z_{k+1} - z_{k-1}),\quad k=2,\dots,n_{zg}-1$$
 $$z_{k} = z_{k+1} - dz_k, \quad dz_k = DZ2[n_{zg}-k+1]$$
 
 ## 4. 关键变量与单位
-| 符号 | 含义 | 单位 |
-|---|---|---|
-| nzg | 土壤层数 | — |
-| slz / z₋ₕ | 节点深度（地表为 0，地下为负） | m |
-| dz | 层厚度 | m |
-| DZ2 | 40 层预设厚度查找表（0.1–540 m） | m |
-| vctr4 | CLM 节点下边界中间量 | m |
+| 符号      | 含义                             | 单位 |
+| --------- | -------------------------------- | ---- |
+| nzg       | 土壤层数                         | —    |
+| slz / z₋ₕ | 节点深度（地表为 0，地下为负）   | m    |
+| dz        | 层厚度                           | m    |
+| DZ2       | 40 层预设厚度查找表（0.1–540 m） | m    |
+| vctr4     | CLM 节点下边界中间量             | m    |
 
 ## 5. 与 Fortran 对应
-| Fortran 子程序 | Julia 函数 | 差异 |
-|---|---|---|
-| CLM `setsoildepth`/`init_clm_soil` 指数节点 | `initializesoildepth_clm` | Julia 显式生成 `dz` 与 `slz`，Fortran 内联在初始化块 |
-| 预设 DZ2 查表初始化 | `initializesoildepth` | 公式一致；Julia 显式校验 `nzg ≤ length(DZ2)` |
-| 输出 `slz, dz` 反转顺序 | 同名 | Julia 使用 `reverse` 一次性反转向量；Fortran 多采用 `do` 循环逆序填入 |
+| Fortran 子程序                              | Julia 函数                | 差异                                                                  |
+| ------------------------------------------- | ------------------------- | --------------------------------------------------------------------- |
+| CLM `setsoildepth`/`init_clm_soil` 指数节点 | `initializesoildepth_clm` | Julia 显式生成 `dz` 与 `slz`，Fortran 内联在初始化块                  |
+| 预设 DZ2 查表初始化                         | `initializesoildepth`     | 公式一致；Julia 显式校验 `nzg ≤ length(DZ2)`                          |
+| 输出 `slz, dz` 反转顺序                     | 同名                      | Julia 使用 `reverse` 一次性反转向量；Fortran 多采用 `do` 循环逆序填入 |
 
 ## 6. 引用
 - 常量 DZ2：src/SoilInitialization.jl:L4-L8
@@ -54,7 +54,7 @@ $$z_{k} = z_{k+1} - dz_k, \quad dz_k = DZ2[n_{zg}-k+1]$$
 
 ## 7. 已知问题与备注
 - 注释中明确指出：**该算法存在问题，slz 计算到了 N+1 层**（src/SoilInitialization.jl:L23-L24, L48）。`slz` 长度为 `nzg+1`，但 `dz` 仅有 `nzg` 个元素，最后一项 `slz[nzg+1] = vctr4[nzg] + 0.5*dz[nzg]` 使用了未与 `dz` 一一对应的下界值，建议后续对齐两数组长度或补充 `dz[nzg+1]` 哨兵。
-- `using DataFrames`（L1）在当前实现中未被使用，属于悬空 import，调用者无需引入 DataFrames 即可使用本模块。
+- ✅ `using DataFrames` 已清理（2026-06-22 修复）：`src/SoilInitialization.jl` L1 的 `using DataFrames` 与 `Project.toml` 中的 `DataFrames = "1.7.0"` 依赖均已移除。
 - `initializesoildepth_clm` 返回 `NamedTuple` `(slz=..., dz=...)`，而 `initializesoildepth` 返回普通 `Tuple`，API 不一致；下游调用需注意解构方式。
 - 反转后 `dz` 顺序与 `DZ2` 表底→表顶顺序一致（最厚层位于最深处），与地表向上为正、向下为负的符号约定一致。
 - 文档：docs/土壤水运动_ASAP.typ 给出分层原则与 ASAP 默认 `nzg` 取值。

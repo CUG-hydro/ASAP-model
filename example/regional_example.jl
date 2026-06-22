@@ -119,17 +119,21 @@ end
 - 静态场：`soiltxt` 1→13（砂→粘）横向梯度；`topo` 山脊形 0..500 m；
   `fdepth` 与 soiltxt 相关（砂土深根 2.5 m，粘土浅根 0.8 m）；
   `landmask = (topo > 0 && topo < 480)`。
-- 初始水位：`wtd = -1.0 - 0.005 * topo + 0.5 * noise`，符号约定 `min(-raw, 0)`。
+- 初始水位（写入正值，下游 `read_wtdnc` 用 `min(-raw, 0)` 翻为非正值）：
+  `wtd_raw = max(0.2, 1.0 + 0.005·topo + 0.3·noise)`，原始 0.2..4.5 m。
 - ERA5 强迫（日循环，UTC）：
-  - `t2m`  日正弦 280..300 K，海陆 ±2 K 噪声；
-  - `d2m`  `t2m - ΔTd`，ΔTd ∈ 2..6 K（RH ≈ 60..85%）；
-  - `wind` 2..6 m/s，地形加速 ×(1 + 0.005·topo)；
-  - `sp`   按压高公式 101325·(1 - 0.0065·topo/288.15)^5.255；
-  - `ssrd` 0..800 W/m²，仅昼间（hour 6..18）非零，云量衰减 0.7..1.0；
-  - `strd` 200 + 2·(t2m − 273)，即 ~Stefan-Boltzmann 粗近似；
-  - `tp`   间歇性降水（90% 小时为 0；事件小时指数分布 2..8 mm/h）；
-  - `stl1..4`  深−0..4 层滞后于 t2m（lag 1..4 h，年均 285 K）。
+  - `t2m`  日正弦 中心 290 K, 振幅 8 K, 海陆 ±2 K 噪声；合成范围 280..300 K。
+  - `d2m`  `t2m - ΔTd`，ΔTd ∈ 3..5 K（RH ≈ 60..85%）。
+  - `wind` base 1..6 m/s × 日循环 0.6..1.4 × 地形加速 (1+0.003·topo, 海拔 500 处 ×2.5)，
+    合成范围 0.6..21 m/s。
+  - `sp`   按压高公式 101325·(1 - 0.0065·topo/288.15)^5.255。
+  - `ssrd` 0..800 W/m², 仅昼间（hour 6..18）非零, 云量衰减 0.7..1.0。
+  - `strd` 200 + 2·(t2m − 273.15), 兜底 ≥ 100 W/m²。
+  - `tp`   间歇性降水（90% 小时为 0；事件小时均匀分布 1..5 mm/h, 已转 m/h）。
+  - `stl1..4`  深−0..4 层滞后于 t2m（lag [0, 2, 6, 24] h），第 4 层强制 285 K。
 - LAI：月度正弦（1 月 0.5，7 月 4.0），日循环微扰 ±0.1。
+  **注意**：mock 模式的 `read_mock_hourly_forcings` 接受 `month::Int` 参数，
+  按当月气候态取 LAI；不传则默认 1 月。
 
 返回字段：`root / static / wtd / era5_wind / era5_temp / era5_dewpoint /
 era5_press / era5_strd / era5_ssrd / era5_soilt / era5_tp / lai_clim`。
@@ -307,13 +311,20 @@ end
 # ===========================================================================
 
 """
-    read_hourly_forcings(hour::Int, paths) -> NamedTuple
+    read_mock_hourly_forcings(hour::Int, paths, month::Int=1) -> NamedTuple
 
 读取指定小时的所有 ERA5 强迫变量，返回 NamedTuple。
-为保持本示例端到端可跑，**直接读 NetCDF 变量并落盘**；
-未来 `src/Forcings/ERA5.jl::ERA5Forcings` 落地后可替换为本项目导出符号。
+为保持本示例端到端可跑，**直接读 NetCDF 变量**。
+
+**与 `src/Forcings/ERA5.jl::read_hourly_forcings` 的差异**（避免 shadow）：
+- 签名不同：本函数读 `paths.era5_*`（由 `generate_mock_dataset` 构造），
+  项目模块读 `\$root/\$varname/ERA5_\$(varname)_\$date.nc`。
+- 变量名不同：mock 用 `wind`/`strd`/`tp`；项目用 `ws10`/`sr`/`tp & sf`。
+- 返回字段不同：本函数返回 `(wind, temp, qair, press, netrad, rshort, precip, lai)`，
+  直接对接 `rootdepth_main`；项目模块返回 4D `varpack` + 原始标量。
+- LAI 取 `month::Int`（1-12）月的气候态切片；不传则默认 1 月。
 """
-function read_hourly_forcings(hour::Int, paths)
+function read_mock_hourly_forcings(hour::Int, paths, month::Int=1)
     read_hourly2d(path, varname) = begin
         NCDataset(path) do ds
             Array{Float64}(ds[varname][:, :, hour])
@@ -352,10 +363,11 @@ function read_hourly_forcings(hour::Int, paths)
     # 短波 rshort 直接取 ssrd（无晴空区分）
     rshort = ssrd
 
-    # LAI：取当月气候态（第 1 月 → 索引 1）
+    # LAI：取当月气候态（1..12 月），由调用方传入
     nx, ny = size(temp)
+    m = clamp(month, 1, 12)
     lai = NCDataset(paths.lai_clim) do ds
-        Array{Float64}(ds["lai"][:, :, 1])  # 全年 1 月份
+        Array{Float64}(ds["lai"][:, :, m])
     end
 
     return (; wind, temp, qair, press, netrad, rshort, precip, lai)
@@ -539,14 +551,16 @@ function main(args::Vector{String})
             # 多日区域运行：每跨过 24h 推进一天，hour_in_day 在 1..24 循环。
             day_offset  = div(hour - 1, 24)
             hour_in_day = mod1(hour, 24)
-            cur_date    = Dates.format(base_date + Day(day_offset), dateformat"yyyymmdd")
+            cur_date_dt = base_date + Day(day_offset)
+            cur_date    = Dates.format(cur_date_dt, dateformat"yyyymmdd")
 
             # 真实数据模式按滚动日期重建 ERA5 强迫路径；mock 模式复用单日合成数据。
             paths_h = (cfg.mock == 0 && day_offset > 0) ?
                 merge(paths, era5_paths_for(cfg.era5, cur_date)) : paths
 
             # 读 ERA5 强迫（mock stub；真实数据接入完整 ERA5 模块见 README §6）
-            f = read_hourly_forcings(hour_in_day, paths_h)
+            f = read_mock_hourly_forcings(hour_in_day, paths_h,
+                                          Dates.month(cur_date_dt))
 
             # 冰冻因子：此处用土壤温度阈值 273.15 K 简单判定
             # 真实实现需读 ERA5 土壤温度（paths.era5_soilt）并按层映射

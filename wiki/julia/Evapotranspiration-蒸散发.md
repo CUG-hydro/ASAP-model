@@ -86,8 +86,8 @@ C_s = \left[1 + \frac{R_a R_s}{R_c(R_s+R_a)}\right]^{-1}$$
 
 ## 7. 已知问题与备注
 
-- **拼写错误**：`potevap_shutteworth_wallace`（双 `t`）与文献 `Shuttleworth` 不一致，保留以避免破坏下游调用。
+- ✅ 拼写错误已通过别名修正（2026-06-22 修复）：`src/Evapotranspiration.jl:7-L8` 同时 export 旧名 `potevap_shutteworth_wallace`（双 t）与正确拼写别名 `potevap_shuttleworth_wallace`；新代码推荐使用别名，对应单元测试 `test/test_evapotranspiration.jl` 的别名一致性断言。
 - **唯一 module 包裹**：`src/Evapotranspiration.jl:L4-L6` 是 `src/` 中唯一显式 `module Evapotranspiration ... end`；其它文件为 `include` 顶层脚本。
 - `BIOPARMS` 索引 18-21 与 3-6 重复（USDA/IGBP 双分类并存），需在 `veg_int = clamp(veg_int,1,31)` 后安全访问。
 - Priestley-Taylor 默认步长假设为日，内部转换 `rad*24*3600*1e-6` 仅适合逐日调用。
-- 未导出任何符号：`export` 列表为空，需以 `ASAP.potevap_xxx` 或 `include` 形式访问。
+- 未导出任何符号：`export` 列表为空（除 L7-L8 的 PET 函数外），需以 `ASAP.potevap_xxx` 或 `include` 形式访问。

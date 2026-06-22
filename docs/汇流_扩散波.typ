@@ -1,4 +1,4 @@
-#import "@local/modern-cug-report:0.1.2": *
+#import "@preview/modern-cug-report:0.1.3": *
 // #import "@preview/mannot:0.3.0": *
 
 #show: doc => template(doc, footer: "CUG水文气象学2025", header: "河道汇流")

@@ -86,8 +86,9 @@ export rootdepth_main                       # L27
 | 符号 | 来源 | 备注 |
 |---|---|---|
 | `updatewtd_shallow` | `src/updatewtd_shallow.jl` | 浅层 WTD 更新（已被 `RootDepth.jl` 调用） |
-| `updatewtd_qlat` | **未 include**（L17 注释） | 备份于 `src/backup/updatewtd_qlat.jl`；export 后外部引用将触发 `UndefVarError`，属**悬空 export** |
 | `rootdepth_main` | `src/RootDepth.jl` | 主算法入口（详见 [`RootDepth-主算法.md`](./RootDepth-主算法.md)） |
+| `read_initial` / `read_wtdnc` | `src/io/NetCDF.jl` | P0 子集（仅 NetCDF 读取，详见 §6.1） |
+| `read_hourly_forcings` / `read_accumulated_forcings` / `read_snow` / `read_snow_hour` / `read_soil_temps` | `src/Forcings/ERA5.jl` | ERA5 强制场读取（详见 [`Forcings-ERA5.md`](./Forcings-ERA5.md)） |
 
 ## 5. 未显式 export 但可访问的符号
 
@@ -97,9 +98,9 @@ export rootdepth_main                       # L27
 - `SoilType`、`get_soil_params`、`init_soil_param`、`cal_K`（`SoilParameters.jl` export）
 - `initializesoildepth_clm`、`initializesoildepth`（`SoilInitialization.jl`）
 - `extraction`（`extraction.jl`）
-- `interception`（`Interception.jl` export 行内注释但实际未 export，调用须 `ASAP.interception`）
+- `interception`（`Interception.jl` L1 export）
 - `cal_factor`（`updatewtd_shallow.jl`，未 export，依赖模块隐式可见）
-- `wtable!`、`updatewtd!`（`modules/Modules.jl` L8 export，但未 include，对应实现位于 `backup/`）
+- `lateral_flow!`、`rivers_kw_flood!`、`rivers_dw_flood!`、`flooding!`、`lateral_isotope!`、`updatedeepwtable!`（`modules/Modules.jl` L14-L16 export，已 include）
 
 ## 6. 与 Fortran 对照
 
@@ -120,7 +121,8 @@ export rootdepth_main                       # L27
 
 ## 8. 已知问题与备注
 
-1. **悬空 export `updatewtd_qlat`**（L26）：对应源文件 `src/updatewtd_qlat.jl` 被注释掉（ASAP.jl L17），实现位于 `src/backup/updatewtd_qlat.jl`。外部 `using ASAP` 后调用 `ASAP.updatewtd_qlat` 会抛 `UndefVarError`，建议恢复 include 或删除 export。
+1. **`updatewtd_qlat` 已从主入口移除**（✅ 2026-06-22 修复）：`src/ASAP.jl` L17 的 `# include("updatewtd_qlat.jl")` 注释保留以作历史说明；对应 export 已整体删除。备份实现仍保留在 `src/backup/updatewtd_qlat.jl`，按 §6 规定不再启用。
 2. **`helper.jl` 与 `modules/Modules.jl` 重复定义**：`helper.jl` 在 `ASAP.jl` L9 被 include；`Modules.jl` L1 又把 `# include("helper.jl")` 注释掉，避免重复 include 报错，但 `find_jwt`、`flowdir` 仍由主模块路径提供。
 3. **`Evapotranspiration.jl` 内部无 export**：三个 PET 函数仅通过 `@reexport` 暴露，对外部 `include("src/Evapotranspiration.jl")` 的脚本（非包用户）必须显式 `import .Evapotranspiration` 才能访问。
-4. **`DataFrames` 未在主模块声明**：`SoilInitialization.jl` L1 使用 `using DataFrames`（悬空 import），但 `Project.toml` 仅声明 `DataFrames` 为正式 dep 而 ASAP.jl 未 `using DataFrames`，不一致需清理。
+4. **`DataFrames` 悬空 import 已清理**（✅ 2026-06-22 修复）：`SoilInitialization.jl` L1 的 `using DataFrames` 与 `Project.toml` 中的 `DataFrames` 依赖均已移除，详见 `_meta/status.md §5 #9`。
+5. **`wtable!` / `updatewtd!` 悬空 export 已清理**（✅ 2026-06-22 修复）：`src/modules/Modules.jl` L14-L16 仅导出当前活跃实现（`lateral_flow!` / `rivers_kw_flood!` / `rivers_dw_flood!` / `flooding!` / `lateral_isotope!` / `updatedeepwtable!`）；L10-L13 注释保留对 `backup/` 旧实现的替代说明。

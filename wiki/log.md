@@ -2,6 +2,31 @@
 
 > 本文件记录 Wiki 的摄取、复核与重大变更，按日期倒序排列。
 
+## [2026-06-22] lint | codebase update — Wiki 与源码 §5/§7 对齐 + 知识图谱索引
+
+- **触发**：用户要求"codebase update"。本次为 D1 lint 的延续：核对 `CLAUDE.md §7` 与 `wiki/_meta/status.md §5` 的不一致。
+- **范围**：
+  - 索引 `ASAP-model` 到 codebase-memory-mcp（913 节点 / 1205 边），覆盖 17 个 Julia 源文件 + 11 个 Fortran 源文件 + test/ + example/。
+  - 全量 lint：38 个 wiki 页面的 80 条 markdown 内链（0 断裂）、0 孤立页。
+  - 源码 vs wiki 对照：核对 `CLAUDE.md §7` 已修复的 10 个源码问题在 wiki 各页面 §7 / `status.md §5` 中的描述状态。
+- **修复**（11 处）：
+  1. `wiki/_meta/status.md §5`：表格增加「状态」列；10 个问题中 9 个标 ✅ 已修复、1 个（同位素追踪）标 ⏸️ 按 §6.1 暂缓；新增「`rivers_* length` 重命名 🟡 部分修复」（`rivers_kw_flood.jl`/`rivers_dw_flood.jl` 已修，`gw2river.jl:23` 形参 `length::M` 仍存在，⚠️ 待后续 PR）。
+  2. `wiki/_meta/status.md §2`「已知问题」列：清理 8 行 stale 描述，按 `#5 §7` 编号引用回链到 §5。
+  3. `wiki/julia/ASAP-主入口.md` §5/§8：移除 `updatewtd_qlat` 悬空 export 条目（§8.1 改 ✅ 修复说明）；`interception` 改为已 export（L1）；`wtable!`/`updatewtd!` export 删除标注；新增 `read_initial`/`read_wtdnc`/ERA5 readers 两行；§8.4 DataFrames 标 ✅ 修复。
+  4. `wiki/julia/SoilParameters-土壤参数.md` §7：`fieldcp` 占位 0 改为 ✅ 已修复（指向 `src/SoilParameters.jl:73-L78` Fortran 公式 + `test_soil_parameters.jl` 数值断言）；移除 DataFrames 悬空 import 备注。
+  5. `wiki/julia/SoilInitialization-土壤分层.md` §7：`using DataFrames` 悬空 import 改为 ✅ 已清理。
+  6. `wiki/julia/Evapotranspiration-蒸散发.md` §7：`potevap_shutteworth_wallace` 拼写错误改为 ✅ 已通过别名修复；`export` 列表补 L7-L8。
+  7. `wiki/julia/extraction-根系吸水.md` §5/§7：`kroot = k - 1` 改为 ✅ 语义已澄清（指向 `src/extraction.jl:65-L70`）。
+  8. `wiki/julia/Interception-截留.md` §5：`MINPPRATE` 风险行改为 ✅ 模块常量 + 函数体消费（L3/L33/L44）。
+  9. `wiki/julia/updatewtd_shallow-浅层水位.md` §7：`flag` 未初始化隐患改为 ✅ 显式初始化 + 注释加固（指向 `src/updatewtd_shallow.jl:35,39-L41`）。
+  10. `wiki/julia/rivers_kw_flood-运动波路由.md` §7：`length` 命名冲突改为 ✅ 已重命名为 `river_length`（指向 L18/L78/L83/L95）。
+  11. `wiki/julia/RootDepth-主算法.md` §8.3/§8.4：`length` 冲突 ✅；`o18`/`θ_eq`/`tempsfc` 形参未消费改为 ⏸️ 按 §6.1 暂缓。
+- **未变更**：
+  - `src/backup/` 按 §6 仍禁用（仅作为历史参考）。
+  - 同位素追踪（`SoilFluxes.jl:347-L351`）按 §6.1 维持注释禁用；恢复需用户明确授权 + 追加 `[YYYY-MM-DD] enable | 范围` 条目。
+  - `gw2river.jl:23` 形参 `length::M` 与 `Base.length` 同名问题未修，记入 `_meta/status.md §5 #10` 作为 ⚠️ 待后续 PR 项。
+- **验证**：本地语法 / 表格结构未跑自动测试；下一步由用户在 `julia --project -e 'using Pkg; Pkg.test()'` 全套绿后确认本 lint 不引入回归。
+
 ## [2026-06-22] policy | CLAUDE.md §6.1 — 现阶段不实现的范围
 
 - **触发**：用户明确"现阶段 NetCDF / MPI / 同位素均不需要实现"。
@@ -128,3 +153,121 @@
 - 修 3 个小 bug：comprehension 重写（替代错误 broadcast）、wind clamp 1..6 m/s、tp 单位修 mm/h。
 - `test/test_regional_example.jl` 「static 往返」与「wtd 符号约定」改范围断言（不再断言具体常数）。
 - 验证：`--mock 1 --duration 168` 7 天跨日跑通；`Pkg.test()` 全套绿。
+
+## [2026-06-22] review | 以 example/regional_example.jl 为主线，串联审查核心代码
+
+- **触发**：用户要求"以 `example/regional_example.jl` 为主线，Review 模型核心代码是否正确，结合 codebase"。本次为首次系统性 code review，覆盖主线程 + 全部 `src/*.jl` 核心模块。
+- **方法**：
+  - 知识图谱：`codebase-memory-mcp` 索引（914 节点 / 1191 边），`trace_path` 跟 `rootdepth_main` 调用链。
+  - 通读：6 步主线程 + 16 个 Julia 源文件 + 2 个 IO/Forcings 子模块。
+  - 测试验证：`Pkg.test()` 全套绿（`regional_example` 端到端 smoke test 12.4 s 通过；其余 9 个核心 testset + ERA5Forcings 7 个 testset + wtable 7 个 testset 全 Pass）。
+- **核心链路正确性**（✅ 全部对齐 Fortran）：
+  1. **NetCDF I/O**（`src/io/NetCDF.jl`）：`read_initial` 4 字段（soiltxt/topo/fdepth/landmask）+ `fdepth < 1e-6 → 100` 夹断 + `topo < -1e5 → 0` 掩码；`read_wtdnc` `min(-raw, 0)` 符号约定 — 与 Fortran `module_io.f90` 一致。
+  2. **土壤参数**（`src/SoilParameters.jl`）：13 类 USDA 土壤表 + Campbell 导水率 `K(θ) = Ksat·(θ/θ_sat)^(2b+3)`；`init_soil_param.fieldcp` 用 `θ_sat·(ψ_sat/-3.366)^(1/b)` 公式（✅ §7 #1 已修）。
+  3. **平衡含水量**（`src/SoilInitialization.jl::eqsoilmoisturetheor`）：逐层 zbrent 求解 `d1·(x-smoi1)/dz + k1 + flux = 0`；深度衰减 `clamp(exp((z+1.5)/fdepth), 0.1, 1.0)` 对齐 Fortran L168-L177。
+  4. **Richards 求解**（`src/SoilFluxes.jl`）：三对角组装 + Campbell K(θ)/D(θ) + 顶部入渗能力截断 `Imax = Ksat·dt` + 自由/受限排水分支 + 含水量限幅；⚠️ 末段氧 18 注释按 §6.1 维持禁用。
+  5. **蒸散发**（`src/Evapotranspiration.jl`）：P-T / P-M / SW 三法俱全；SW 双源返回 12 元组（Δ/γ/λ/ra_a/ra_c/rs_c/R_a/R_s/pet_s/pet_c/pet_w/pet_i），单位注意：pet_s, pet_c 是 W/m²，pet_w, pet_i 是 mm/Δt；拼写错误已加别名 `potevap_shuttleworth_wallace`（✅ §7 #8）。
+  6. **根系吸水**（`src/extraction.jl`）：Feddes-style `easy[k] = max(-(POTLEAF-ψ)/(hveg-z), 0)` + `fswp = θ_root/rootfc` 胁迫 + `maxwat` 限幅 + `watdef` 累计缺水；`kroot = k-1` 语义已澄清（✅ §7 #5）。
+  7. **截留**（`src/Interception.jl`）：`intercepmax = 0.2·lai` + `minpprate = 0.01` 阈值分支；`minpprate` 文档与实现一致（✅ §7 #7）。
+  8. **浅层水位**（`src/updatewtd_shallow.jl`）：迭代上升/下降分支 + `flag` 每轮重置 0（✅ §7 #6）；`find_jwt` 在 `helper.jl` 中 1-based 索引正确。
+  9. **侧向流 / 河-地交换 / 河流路由**（`src/modules/`）：D8 邻居 + D8 流向 `flowdir` + 河床交换 3 模式 + 运动波 + 扩散波 + 漫流；`length` → `river_length` 已全链路重命名（✅ §7 #10）。
+
+- **发现 6 处需关注**（按严重度排序）：
+
+  1. 🟡 **`regional_example.jl` 局部 `read_hourly_forcings` 与项目 `src/Forcings/ERA5.jl::read_hourly_forcings` 签名不一致**
+     - 文件：`example/regional_example.jl:316-362` 与 `src/Forcings/ERA5.jl:178-226`
+     - 局部 stub 签名 `read_hourly_forcings(hour::Int, paths)` 返回 `(wind, temp, qair, press, netrad, rshort, precip, lai)`，8 字段
+     - 项目模块签名 `read_hourly_forcings(date::String, root::String; grid, xrange, yrange)` 返回 `varpack(rx, ry, 24, 11) + 10 标量字段`
+     - 局部定义 shadow 项目 `using ASAP` 导出的同名函数；真实数据模式（`--mock 0`）将使用局部 stub 而非项目实现，导致 NetCDF 文件名约定不一致（项目期望 `ERA5_ws10_*.nc`，局部 stub 期望 `ERA5_wind_speed_*.nc`）
+     - 建议：要么删除局部 stub 改用项目模块 + 包装层，要么把两套约定统一
+
+  2. 🟡 **`regional_example.jl::read_hourly_forcings` LAI 硬编码为 1 月**（`[:, :, 1]`）
+     - `example/regional_example.jl:358`：`ds["lai"][:, :, 1]`，全年都按 1 月（LAI=0.5）取值
+     - 7 月应取 LAI=4.0 但实际仍是 0.5，蒸腾低估 ~3.5 倍
+     - 建议：取 `month = Dates.month(Date(cfg.date, dateformat"yyyymmdd"))`
+
+  3. 🟡 **`src/SoilFluxes.jl::soilfluxes` 三对角解被改写后丢弃，再用 Q 通量做质量平衡更新**
+     - 文件：`src/SoilFluxes.jl:219-264`
+     - L219 `tridag!(aa, bb, cc, rr, θ)` 求出新 θ
+     - L222-226 用新 θ 计算 `capflux = -aa·(θ[k]-θ[k-1])·dt` + `gravflux = -K_mid·dt`
+     - L261 `θ .= θ_old` 恢复为旧值
+     - L263 `θ_old[k] += (Q[k]-Q[k+1]-transp[k])/dz[k]` 用新 Q 更新旧 θ
+     - L360 `θ .= θ_old` 写回
+     - 模式成立（tridiag 用来求一致通量，质量平衡更新守恒），但可读性差且对 `θ` 在 219-261 之间的用途需注意（如有 `icefactor` 路径依赖 θ 必须放在 261 之后）
+     - 建议：在函数头注释 + 局部变量 `θ_star` 明确两阶段语义，或改用 `θ_new = θ_old; tridag!(...); θ_old .+= ...; θ_new = θ_old`
+
+  4. 🟢 **`regional_example.jl` 文档与代码不一致**（3 处）
+     - L122 docstring：`wtd_raw = -1.0 - 0.005·topo + 0.5·noise`；代码 L170 是 `+0.005·topo + 0.3·randn()`
+     - L126 docstring：`wind 2..6 m/s`；代码 L201-204 实际可到 ~21 m/s（`topo_factor=1+0.003·topo` 在 topo=500 处 ×2.5）
+     - L131 docstring：`tp 2..8 mm/h`；代码 L225 实际是 `1..5 mm/h`
+     - 建议：同步文档与代码，或将合成数据范围与文档对齐
+
+  5. 🟢 **`test/wtable/runtests.jl`「Basic Water Table Calculations」testset 为空**（0 tests / 0.0 s）
+     - `Pkg.test()` 输出 `Test Summary: Basic Water Table Calculations | 0 0.0s`
+     - 实际是 `runtests.jl` 中对应 testset 内没有 `@test`，仅 `@testset` 包裹了空 begin/end 块
+     - 建议：补全测试（可参考 `test_rivers_dw_flood.jl` 风格）；或明确移除空 testset
+
+  6. 🟢 **`src/SoilParameters.jl::KLATFACTOR` 未导出**（次要）
+     - `SoilType` 结构体有 `K_latfactor` 字段，`get_soil_params` 填充 `KLATFACTOR[soil_type]`
+     - 但 `KLATFACTOR` 数组本身未在 `export` 列表（L6-7），仅在 `src/modules/lateral_flow.jl` 中通过 `κlat[i, j]` 形参流入
+     - 建议：若 `lateral_flow!` 期望 `κlat` 已乘 `K_latfactor`，则当前实现依赖外部传入预乘值，模块边界不清晰；建议在 `lateral_flow!` 入口显式乘 `K_latfactor` 并从 `SoilParameters` 拿值
+
+- **未发现功能性 bug**：
+  - 13 类 USDA 土壤参数与 Fortran `module_rootdepth.f90::INIT_SOIL_PARAM` 一致（θ_sat/θ_cp/ψ_sat/K_sat/b 五参数表）
+  - `initializesoildepth` 与 Fortran L1-L20 节点深度公式一致
+  - `tridag!` 标准 Thomas 算法，bet==0 防御已就位
+  - `helper.find_jwt` 1-based 索引正确（与 Fortran 一致；`kroot = k-1` 语义已澄清）
+  - 端到端 mock 模式 12.4 s 完成 1 时步 × 3×3 网格（12.4 s 主要开销是 Julia 编译 + NetCDF 读写），模型本身计算成本合理
+  - `Pkg.test()` smoke test 全套绿
+
+- **建议优先级**：
+  - P0（修）：无
+  - P1（建议）：#1（stub 与项目模块签名统一）、#2（LAI 月份）
+  - P2（清理）：#3（`soilfluxes` 可读性）、#4（文档同步）、#5（空 testset 补全）
+  - P3（可选）：#6（`KLATFACTOR` 模块边界）
+
+- **未变更**：
+  - `src/backup/` 按 §6 仍禁用
+  - 同位素追踪按 §6.1 维持注释禁用
+  - `gw2river.jl:23` 形参 `length::M` 未在本次 review 范围（已在 `_meta/status.md §5 #10` 登记）
+- **验证**：`Pkg.test()` 全套绿（10+ ERA5Forcings 断言 + regional_example 4 个 testset 52 断言 + wtable 7 个 testset 38 断言 + 9 个核心模块 testset 全部通过）。
+
+## [2026-06-22] fix | 应用 review 的 6 处建议
+
+- **触发**：用户对 review 报告（上一条目）的 6 处问题逐项要求修复。
+- **修复明细**：
+
+  1. **#1（🟡）解除 `read_hourly_forcings` shadow** — `example/regional_example.jl:309-364`
+     - 把局部 stub 改名为 `read_mock_hourly_forcings(hour, paths, month=1)`。
+     - 更新 `main()` 调用方（`f = read_mock_hourly_forcings(...)`），并把 `cur_date` 拆为 `cur_date_dt = base_date + Day(day_offset)`（`Date`）与 `cur_date`（`String`）。
+     - 顶部 docstring 列出与 `src/Forcings/ERA5.jl::read_hourly_forcings` 的 4 点差异（签名/变量名/返回字段/LAI 来源），明确两个函数互不替代。
+     - 顺带：原 docstring 字符串包含 `$root` 触发 Julia 字符串插值（`UndefVarError: root`），已用 `\$root` 转义。
+
+  2. **#2（🟡）LAI 月份化** — `example/regional_example.jl:325, 359`
+     - `read_mock_hourly_forcings` 新增 `month::Int=1` 形参（1..12，默认 1）。
+     - LAI 切片由 `[:, :, 1]` 改为 `[:, :, clamp(month, 1, 12)]`；调用方传 `Dates.month(cur_date_dt)`。
+     - 7 月模拟时 LAI 由 0.5 升到 4.0，蒸腾需求正确恢复。
+
+  3. **#3（🟡）`soilfluxes` 两阶段语义明确化** — `src/SoilFluxes.jl:218-326, 360-362`
+     - 阶段 1：新增局部 `θ_star = similar(θ)` 缓冲；`tridag!(aa, bb, cc, rr, θ_star)` 写入新缓冲。
+     - 阶段 2：质量平衡与边界修正直接在 `θ` 上原地写，不再走 `θ .= θ_old` 恢复再覆盖的迂回。
+     - 函数头注释补充「两阶段」段落，明确 `θ_star`（tridiag 解）/ `θ_old`（旧值，用于顶层 BC 与水位层通量）/ `θ`（新值输出）三个角色。
+     - 行为不变（仅结构改写）；`test_soil_fluxes.jl` / `test_rootdepth.jl` 全部通过。
+
+  4. **#4（🟢）docstring 同步** — `example/regional_example.jl:113-138`
+     - 修正 3 处不一致：wtd 符号（写正值 + `read_wtdnc` 翻为非正）/ wind 范围 0.6..21 m/s（地形放大 2.5×）/ tp 范围 1..5 mm/h。
+     - 补 t2m 噪声说明、d2m 范围、strd 兜底、stl lag 列表、LAI 月度正弦公式。
+
+  5. **#5（🟢）删除空 testset** — `test/wtable/test_watertable.jl`
+     - 「Basic Water Table Calculations」testset 因依赖已禁用的 `wtable!`（`src/backup/`）而整段空，全部 `@test` 被注释。
+     - 整段删除（38 行），避免「0 tests / 0.0 s」噪音；`Pkg.test()` 输出不再有该空 testset。
+
+  6. **#6（🟢）`KLATFACTOR` 加入 export** — `src/SoilParameters.jl:6-8, 32-40`
+     - 把 `KLATFACTOR` 加入 `export` 列表，加 `docstring` 说明其作为 `lateral_flow!` 标定系数（乘到 Ksat）的语义与对 Fortran `SLKLF` 的参考。
+     - `SoilType.K_latfactor` 字段填充仍由 `get_soil_params` 负责（行为不变）。
+
+- **未变更**：
+  - `src/backup/` 仍按 §6 禁用
+  - 同位素追踪按 §6.1 维持注释禁用
+  - `gw2river.jl:23` 形参 `length::M` 未在本次修复范围（已记入 `_meta/status.md §5 #10`）
+- **验证**：`Pkg.test()` 全套绿（regional_example 端到端 12.4 s 通过；空 testset 已消失；其余 9 个核心 testset + ERA5Forcings 7 个 testset + wtable 6 个 testset 全部 Pass）。

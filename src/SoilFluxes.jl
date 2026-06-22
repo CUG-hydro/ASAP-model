@@ -7,6 +7,16 @@ export soilfluxes, tridag
 历史代码保留在函数尾部作为参考，待 `IsotopeTracing` 模块与主循环完全串联后恢复。
 详见 `wiki/julia/SoilFluxes-土壤水运动.md`「已知问题」。
 
+# 算法（两阶段）
+
+1. **阶段 1 — 三对角解（`θ_star`）**：用 Campbell K(θ)/D(θ) 在旧 θ 线性化，
+   组装三对角系统 A·θ = rhs，调用 `tridag!` 求出新含水量 `θ_star`。
+2. **阶段 2 — 质量平衡更新（`θ`）**：用 `θ_star` 计算与新含水量**自洽**的通量 Q，
+   再用质量守恒 `θ_new = θ_old + (Q - Q+1 - transp) / Δz` 更新 θ。
+   之后做饱和上限与干燥下限的边界修正。
+
+`θ_star` 与 `θ` 分开存放，避免原代码「tridiag 覆盖 θ 后再恢复」的易混淆模式。
+
 # 参数
 - `nzg::Int`: 土壤层数
 - `dt::Float64`: 时间步长 (s)
@@ -16,7 +26,7 @@ export soilfluxes, tridag
 - `θ_wtd::Float64`: 地下水含水量
 - `transp::Vector{Float64}`: 蒸腾提取量 (m) [nzg]
 - `transpdeep::Float64`: 深层蒸腾 (m)
-- `θ::Vector{Float64}`: 土壤含水量 [nzg]
+- `θ::Vector{Float64}`: 土壤含水量 [nzg]（原地更新：旧值输入 → 新值输出）
 - `wtd::Float64`: 地下水位深度 (m)
 - `precip::Float64`: 降水 (mm)
 - `pet_s::Float64`: 土壤蒸发潜力 (mm)
@@ -41,7 +51,7 @@ function soilfluxes(
   # o18::Vector{Float64}, precipo18::Float64, tempsfc::Float64, qlato18::Float64, transpo18::Float64
 
   # 计算辅助变量
-  z = 0.5 .* (z₋ₕ[1:nzg] .+ z₋ₕ[2:nzg+1]) # 层中心深度, z 
+  z = 0.5 .* (z₋ₕ[1:nzg] .+ z₋ₕ[2:nzg+1]) # 层中心深度, z
   Δz₊ₕ = zeros(Float64, nzg)
   for k in 2:nzg
     Δz₊ₕ[k] = z[k] - z[k-1] # 两层之间的中心位置
@@ -59,7 +69,7 @@ function soilfluxes(
   rech = 0.0
   runoff = 0.0
 
-  # 复制初始值
+  # 复制初始值（旧值保留用于顶层 BC 与水位层通量）
   θ_old = copy(θ)
   qgw = qlat - qrf
 
@@ -215,13 +225,14 @@ function soilfluxes(
     end
   end
 
-  # 求解三对角系统
-  tridag!(aa, bb, cc, rr, θ)
+  # 求解三对角系统（阶段 1：用旧 θ 线性化，求出新含水量 θ_star）
+  θ_star = similar(θ)
+  tridag!(aa, bb, cc, rr, θ_star)
 
-  # 计算通量
+  # 计算通量（用 θ_star 求与新含水量自洽的 Q）
   for k in max(jwt, 3):nzg
     gravflux[k] = -K_mid[k] * dt
-    capflux[k] = -aa[k] * (θ[k] - θ[k-1]) * dt
+    capflux[k] = -aa[k] * (θ_star[k] - θ_star[k-1]) * dt
     Q[k] = capflux[k] + gravflux[k]
   end
 
@@ -230,7 +241,7 @@ function soilfluxes(
     gravflux[1] = 0.0
     Q[1] = 0.0
     gravflux[2] = -K_mid[2] * dt
-    capflux[2] = -aa[2] * (θ[2] - θ[1]) * dt
+    capflux[2] = -aa[2] * (θ_star[2] - θ_star[1]) * dt
     Q[2] = capflux[2] + gravflux[2]
   else
     for k in 1:(jwt-2)
@@ -255,29 +266,28 @@ function soilfluxes(
     end
   end
 
-  Q[1] = freedrain ? -K_mid[1] * dt : 0.0 # 为何乘dt ? 
+  Q[1] = freedrain ? -K_mid[1] * dt : 0.0 # 为何乘dt ?
 
-  # 重新计算土壤含水量
-  θ .= θ_old
+  # 阶段 2：质量平衡更新 θ
   for k in 1:nzg
-    θ_old[k] = θ_old[k] + (Q[k] - Q[k+1] - transp[k]) / Δz[k]
+    θ[k] = θ_old[k] + (Q[k] - Q[k+1] - transp[k]) / Δz[k]
   end
 
-  # 检查并修正土壤含水量边界
+  # 检查并修正土壤含水量边界（饱和上限）
   for k in 1:nzg
     soil = get_soil_params(soiltxt)
     θ_sat = soil.θ_sat * max(min(exp((z[k] + 1.5) / fdepth), 1.0), 0.1)
 
-    if θ_old[k] > θ_sat
-      dθ = max((θ_old[k] - θ_sat) * Δz[k], 0.0)
+    if θ[k] > θ_sat
+      dθ = max((θ[k] - θ_sat) * Δz[k], 0.0)
       if k < nzg
-        θ_old[k+1] = θ_old[k+1] + dθ / Δz[k+1]
+        θ[k+1] = θ[k+1] + dθ / Δz[k+1]
         Q[k+1] = Q[k+1] + dθ
       else
         Q[k+1] = Q[k+1] + dθ
         runoff = runoff + dθ
       end
-      θ_old[k] = θ_sat
+      θ[k] = θ_sat
 
       if capflux[k+1] < 0.0
         gravflux[k+1] = gravflux[k+1] + capflux[k+1]
@@ -297,21 +307,21 @@ function soilfluxes(
   θ_cp = soil.θ_cp * max(min(exp((z[k] + 1.5) / fdepth), 1.0), 0.1)
 
   et_s = pet_s
-  if θ_old[k] < θ_cp
-    dθ = max((θ_cp - θ_old[k]) * Δz[k], 0.0)
+  if θ[k] < θ_cp
+    dθ = max((θ_cp - θ[k]) * Δz[k], 0.0)
     if Q[k+1] > dθ
       et_s = max(0.0, pet_s - dθ * 1.0e3)
-      θ_old[k] = θ_cp
+      θ[k] = θ_cp
       Q[k+1] = Q[k+1] - dθ
     else
       et_s = max(0.0, pet_s - max(Q[k+1], 0.0) * 1.0e3)
       Q[k+1] = min(Q[k+1], 0.0)
-      θ_old[k] = θ_old[k] + max(Q[k+1], 0.0) / Δz[k]
+      θ[k] = θ[k] + max(Q[k+1], 0.0) / Δz[k]
 
-      dθ = max((θ_cp - θ_old[k]) * Δz[k], 0.0)
-      θ_old[k-1] = θ_old[k-1] - dθ / Δz[k-1]
+      dθ = max((θ_cp - θ[k]) * Δz[k], 0.0)
+      θ[k-1] = θ[k-1] - dθ / Δz[k-1]
       Q[k] = Q[k] + dθ
-      θ_old[k] = θ_cp
+      θ[k] = θ_cp
     end
   end
 
@@ -320,13 +330,13 @@ function soilfluxes(
     soil = get_soil_params(soiltxt)
     θ_cp = soil.θ_cp * max(min(exp((z[k] + 1.5) / fdepth), 1.0), 0.1)
 
-    if θ_old[k] < θ_cp
-      dθ = max((θ_cp - θ_old[k]) * Δz[k], 0.0)
+    if θ[k] < θ_cp
+      dθ = max((θ_cp - θ[k]) * Δz[k], 0.0)
       if k > 1
-        θ_old[k-1] = θ_old[k-1] - dθ / Δz[k-1]
+        θ[k-1] = θ[k-1] - dθ / Δz[k-1]
       end
       Q[k] = Q[k] + dθ
-      θ_old[k] = θ_cp
+      θ[k] = θ_cp
     end
   end
 
@@ -348,16 +358,16 @@ function soilfluxes(
   # 氧18同位素计算（简化版本）
   # transpo18_out = 0.0
   # for k in 1:nzg
-  #     transpo18_out += 0.5 * (o18[k] / θ_old[k] + o18ratio[k]) * transp[k]
+  #     transpo18_out += 0.5 * (o18[k] / θ[k] + o18ratio[k]) * transp[k]
   #     if o18[k] < 0.0
   #         println("警告: O18小于零! i=$i, j=$j, k=$k")
   #     end
-  #     if o18[k] > θ_old[k]
+  #     if o18[k] > θ[k]
   #         println("警告: O18大于土壤含水量! i=$i, j=$j, k=$k")
   #     end
   # end
   # o18 .= max.(o18, 0.0)
-  θ .= θ_old
+  # θ 已在阶段 2 原地更新为新含水量，直接返回
   return et_s, runoff, rech, flux, qrfcorrect, θ
 end
 

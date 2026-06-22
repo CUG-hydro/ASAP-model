@@ -75,33 +75,33 @@ $$
 
 ## 4. 关键变量与单位
 
-| 符号 | 含义 | 单位 |
-|---|---|---|
-| `nzg` | 土壤层数 | - |
-| `jwt` | 地下水位所在层号 | - |
-| `dt` | 时间步长 | s |
-| `z₋ₕ` | 层界面深度 | m |
-| `Δz` | 层厚度 | m |
-| `θ`, `θ_wtd` | 体积含水量 / 地下水位处含水量 | m³/m³ |
-| `θ_sat`, `θ_cp` | 饱和含水量 / 凋萎含水量 | m³/m³ |
-| `Ksat`, `b`, `ψsat` | 饱和导水率 / Campbell b / 饱和基质势 | m s⁻¹ / - / m |
-| `K_mid`, `D_mid` | 层间 K(θ) 与 D(θ) | m s⁻¹ / m² s⁻¹ |
-| `Q`, `flux` | 层间水分通量数组（向下为负） | m s⁻¹ |
-| `Imax` | 入渗能力 | m |
-| `runoff` | 超渗产流量 | m |
-| `rech` | 地下水补给量（= Q[1]） | m |
-| `transp` | 根系吸水提取量 | m |
-| `icefactor` | 冰冻抑制因子 (0~1) | - |
-| `freedrain` | 自由排水标志 | Bool |
+| 符号                | 含义                                 | 单位           |
+| ------------------- | ------------------------------------ | -------------- |
+| `nzg`               | 土壤层数                             | -              |
+| `jwt`               | 地下水位所在层号                     | -              |
+| `dt`                | 时间步长                             | s              |
+| `z₋ₕ`               | 层界面深度                           | m              |
+| `Δz`                | 层厚度                               | m              |
+| `θ`, `θ_wtd`        | 体积含水量 / 地下水位处含水量        | m³/m³          |
+| `θ_sat`, `θ_cp`     | 饱和含水量 / 凋萎含水量              | m³/m³          |
+| `Ksat`, `b`, `ψsat` | 饱和导水率 / Campbell b / 饱和基质势 | m s⁻¹ / - / m  |
+| `K_mid`, `D_mid`    | 层间 K(θ) 与 D(θ)                    | m s⁻¹ / m² s⁻¹ |
+| `Q`, `flux`         | 层间水分通量数组（向下为负）         | m s⁻¹          |
+| `Imax`              | 入渗能力                             | m              |
+| `runoff`            | 超渗产流量                           | m              |
+| `rech`              | 地下水补给量（= Q[1]）               | m              |
+| `transp`            | 根系吸水提取量                       | m              |
+| `icefactor`         | 冰冻抑制因子 (0~1)                   | -              |
+| `freedrain`         | 自由排水标志                         | Bool           |
 
 ## 5. 与 Fortran 对应
 
-| Fortran 子程序 | Julia 函数 | 差异 |
-|---|---|---|
-| `SoilWater()` | `soilfluxes(...)` | Julia 用 kwargs（`freedrain::Bool`）替代 Fortran 整型标志；返回元组替代 COMMON 块；删除了氧18同位素过程（src/SoilFluxes.jl 末尾 `o18ratio` 段被注释） |
-| `tridi()` | `tridag!(...)` | Julia 原地修改右端向量 `r` 与解 `u`，省略 Fortran 的 `bet` 工作数组（用 `gam` 替代） |
-| `theta_limits()` | 内联于 `soilfluxes` 中 | Julia 在主循环末尾统一校正超饱和 / 过干 |
-| `infil_capacity()` | `Imax = Ksat*dt` 内联 | 不再单独子程序化 |
+| Fortran 子程序     | Julia 函数             | 差异                                                                                                                                                  |
+| ------------------ | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SoilWater()`      | `soilfluxes(...)`      | Julia 用 kwargs（`freedrain::Bool`）替代 Fortran 整型标志；返回元组替代 COMMON 块；删除了氧18同位素过程（src/SoilFluxes.jl 末尾 `o18ratio` 段被注释） |
+| `tridi()`          | `tridag!(...)`         | Julia 原地修改右端向量 `r` 与解 `u`，省略 Fortran 的 `bet` 工作数组（用 `gam` 替代）                                                                  |
+| `theta_limits()`   | 内联于 `soilfluxes` 中 | Julia 在主循环末尾统一校正超饱和 / 过干                                                                                                               |
+| `infil_capacity()` | `Imax = Ksat*dt` 内联  | 不再单独子程序化                                                                                                                                      |
 
 ## 6. 引用
 

@@ -4,7 +4,8 @@
 """
 
 export SoilType, get_soil_params, init_soil_param, cal_K,
-  slcons, slmsts, slpots, slbs, soilcp
+  slcons, slmsts, slpots, slbs, soilcp,
+  KLATFACTOR  # 侧向导水率标定因子（m/s 标量，1-13）
 
 # 常数定义
 const NVTYP = 30  # 植被类型数量
@@ -29,6 +30,12 @@ const SLBS = [4.05, 4.38, 4.9, 5.3, 5.39, 7.12, 7.75, 8.52, 10.4, 10.4, 11.4, 7.
 const KSAT = [0.000176, 0.0001563, 0.00003467, 0.0000072, 0.00000695, 0.0000063,
   0.0000017, 0.00000245, 0.000002167, 0.000001033, 0.000001283, 0.0000080, 0.000005787]
 const ΨSAT = [-0.121, -0.090, -0.218, -0.786, -0.478, -0.299, -0.356, -0.630, -0.153, -0.490, -0.405, -0.356, -0.630]
+"""
+侧向流标定因子 K_latfactor（无量纲，索引 1-13 对应 13 种 USDA 土壤类型）。
+作为 `lateral_flow!` 的标定系数，乘到 Ksat 上得到侧向流有效导水率。
+
+参考：Cosby et al. (1984) 与 fortran/module_rootdepth.f90::SLKLF。
+"""
 const KLATFACTOR = [2.0, 3.0, 4.0, 10.0, 12.0, 14.0, 20.0, 24.0, 28.0, 40.0, 48.0, 48.0, 48.0]
 
 

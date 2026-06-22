@@ -45,24 +45,24 @@ $$
 河道-洪泛区重分配：当 `riverarea·maxdepth`（即 `riverchannel`）阈值跨越，则把超出 `maxdepth` 的部分从河道水深转入洪泛水深 `floodheight`。
 
 ## 4. 关键变量与单位
-| 符号 | 含义 | 单位 |
-|---|---|---|
-| qnew | 网格出口流量 | m³ s⁻¹ |
-| depth | 河道水深 | m |
-| floodheight | 洪泛区水深 | m |
-| riverarea / floodarea | 河道/洪泛面积 | m² |
-| riverchannel | 阈值 `maxdepth·riverarea` | m³ |
-| slope | 河床比降 `S₀` | — |
-| width / length | 河宽 / 河长 | m / m |
-| n | 曼宁糙率 | s m⁻¹/³ |
-| qmean | 时间累加平均流量 | m³ |
+| 符号                  | 含义                      | 单位    |
+| --------------------- | ------------------------- | ------- |
+| qnew                  | 网格出口流量              | m³ s⁻¹  |
+| depth                 | 河道水深                  | m       |
+| floodheight           | 洪泛区水深                | m       |
+| riverarea / floodarea | 河道/洪泛面积             | m²      |
+| riverchannel          | 阈值 `maxdepth·riverarea` | m³      |
+| slope                 | 河床比降 `S₀`             | —       |
+| width / length        | 河宽 / 河长               | m / m   |
+| n                     | 曼宁糙率                  | s m⁻¹/³ |
+| qmean                 | 时间累加平均流量          | m³      |
 
 ## 5. 与 Fortran 对应
-| Fortran 子程序 | Julia 函数 | 差异 |
-|---|---|---|
-| `RIVERS_KW_FLOOD` (L800) | `rivers_kw_flood!` | 接口完全对齐；将 `deltat`/`dtlr` 拆为 `Δt`/`δt` 参数语义化 |
-| 内联硬编码分流 | `apply_specific_diversions` | 抽成可复用的独立函数 |
-| 局部 `inflow` 数组 | `qin = zeros(size(q))` | 名称 `qin` 取代原 Fortran 变量 |
+| Fortran 子程序           | Julia 函数                  | 差异                                                       |
+| ------------------------ | --------------------------- | ---------------------------------------------------------- |
+| `RIVERS_KW_FLOOD` (L800) | `rivers_kw_flood!`          | 接口完全对齐；将 `deltat`/`dtlr` 拆为 `Δt`/`δt` 参数语义化 |
+| 内联硬编码分流           | `apply_specific_diversions` | 抽成可复用的独立函数                                       |
+| 局部 `inflow` 数组       | `qin = zeros(size(q))`      | 名称 `qin` 取代原 Fortran 变量                             |
 
 ## 6. 引用
 - 行号：`src/modules/rivers_kw_flood.jl`:L13-L23 计算外部入流；L26-L32 流向入流；L34-L46 Manning 公式主体
@@ -71,6 +71,6 @@ $$
 
 ## 7. 已知问题与备注
 - 运动波假设在缓坡河漫滩失效，应让 `rivers_dw_flood!` 在洪水态接管（见 `rivers_dw_flood-扩散波路由.md`）
-- `length` 参数与 `Base.length` 同名，存在命名冲突隐患
+- ✅ `length` 命名冲突已通过重命名修复（2026-06-22 修复）：`src/modules/rivers_kw_flood.jl:18` 形参已重命名为 `river_length`，全链路 L78/L83/L95 一并替换。
 - `riverchannel` 在 Fortran 中是 `maxdepth·riverarea`（体积阈值），在 Julia 中保留同样语义
 - `n` 曼宁糙率取默认 0.03，未在参数列表暴露

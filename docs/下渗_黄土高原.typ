@@ -1,4 +1,4 @@
-#import "@local/modern-cug-report:0.1.2": *
+#import "@preview/modern-cug-report:0.1.3": *
 #show: doc => template(doc, footer: "CUG水文气象学2025", header: "下渗")
 
 #beamer-block[王文焰2003，黄土中Green-Ampt 入渗模型的改进与验证]

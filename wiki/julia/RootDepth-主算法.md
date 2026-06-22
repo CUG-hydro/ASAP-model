@@ -43,12 +43,12 @@ function rootdepth_main(
 
 ### 类型参数语义
 
-| 参数 | 含义 | 约定 |
-|---|---|---|
-| `T<:Real` | 数值类型 | `Float64` 或 `Float32`，决定整体精度 |
-| `V<:Vector{T}` | 一维数组 | `slz`、`dz`（层深度与厚度） |
-| `M<:Matrix{T}` | 二维网格数组 | 大部分气象强迫与状态变量，尺寸 `[ie, je]` |
-| `A3<:Array{T,3}` | 三维土壤柱 | `θ`、`θ_eq`、`watext`、`o18` 等 `[nzg, ie, je]` |
+| 参数             | 含义         | 约定                                            |
+| ---------------- | ------------ | ----------------------------------------------- |
+| `T<:Real`        | 数值类型     | `Float64` 或 `Float32`，决定整体精度            |
+| `V<:Vector{T}`   | 一维数组     | `slz`、`dz`（层深度与厚度）                     |
+| `M<:Matrix{T}`   | 二维网格数组 | 大部分气象强迫与状态变量，尺寸 `[ie, je]`       |
+| `A3<:Array{T,3}` | 三维土壤柱   | `θ`、`θ_eq`、`watext`、`o18` 等 `[nzg, ie, je]` |
 
 `Array{Int,3}`、`Matrix{Int8}`、`Array{Int16,3}` 等特殊整型数组保持**具体类型而非泛型**，因为它们用于 icefactor、infilk 等离散状态。
 
@@ -116,23 +116,23 @@ infilk[i,j] > _kInfilt && (infilk[i,j] = _kInfilt)
 
 ## 4. 关键变量与单位
 
-| 符号 | 含义 | 单位 | 数组形状 |
-|---|---|---|---|
-| `freedrain` | 自由排水标志 | 0/1 | 标量 |
-| `is/ie/js/je` | 网格范围（halo） | — | 4×Int |
-| `nzg` | 土壤层数 | — | Int（典型 15） |
-| `z₋ₕ` | 层下边界深度（地表为 0，地下为负） | m | `[nzg+1]` |
-| `dz` | 层厚度 | m | `[nzg]` |
-| `Δt` | 时间步长（典型 3600 s） | s | Float64 |
-| `landmask` | 陆地掩码 | 0/1 | `[ie, je]` |
-| `veg` / `hveg` | 植被类型 / 高度 | — / m | `[ie, je]` |
-| `soiltxt[1,i,j]` | 当前格点土壤类型 (1..13) | — | `Array{Int,3}` 第 1 维 1/2 |
-| `θ` / `θ_eq` / `θ_wtd` | 体积含水量 / 平衡 / 水位处 | m³/m³ | `[nzg, ie, je]` / `[ie, je]` |
-| `wtd` | 地下水位深度（地表为 0） | m | `[ie, je]` |
-| `petstep_w/s/c/i` | SW 四分量（水面/土壤/冠层/截留） | mm | 局部变量 |
-| `flux` | 层间通量（向下为负） | m | `[nzg+1]` |
-| `infilflux` / `upflux` | 入渗 / 上升通量 | mm | `[nzg, ie, je]` |
-| `o18` | ¹⁸O 含量（三维） | ‰ 或 m³/m³ | `[nzg, ie, je]` |
+| 符号                   | 含义                               | 单位       | 数组形状                     |
+| ---------------------- | ---------------------------------- | ---------- | ---------------------------- |
+| `freedrain`            | 自由排水标志                       | 0/1        | 标量                         |
+| `is/ie/js/je`          | 网格范围（halo）                   | —          | 4×Int                        |
+| `nzg`                  | 土壤层数                           | —          | Int（典型 15）               |
+| `z₋ₕ`                  | 层下边界深度（地表为 0，地下为负） | m          | `[nzg+1]`                    |
+| `dz`                   | 层厚度                             | m          | `[nzg]`                      |
+| `Δt`                   | 时间步长（典型 3600 s）            | s          | Float64                      |
+| `landmask`             | 陆地掩码                           | 0/1        | `[ie, je]`                   |
+| `veg` / `hveg`         | 植被类型 / 高度                    | — / m      | `[ie, je]`                   |
+| `soiltxt[1,i,j]`       | 当前格点土壤类型 (1..13)           | —          | `Array{Int,3}` 第 1 维 1/2   |
+| `θ` / `θ_eq` / `θ_wtd` | 体积含水量 / 平衡 / 水位处         | m³/m³      | `[nzg, ie, je]` / `[ie, je]` |
+| `wtd`                  | 地下水位深度（地表为 0）           | m          | `[ie, je]`                   |
+| `petstep_w/s/c/i`      | SW 四分量（水面/土壤/冠层/截留）   | mm         | 局部变量                     |
+| `flux`                 | 层间通量（向下为负）               | m          | `[nzg+1]`                    |
+| `infilflux` / `upflux` | 入渗 / 上升通量                    | mm         | `[nzg, ie, je]`              |
+| `o18`                  | ¹⁸O 含量（三维）                   | ‰ 或 m³/m³ | `[nzg, ie, je]`              |
 
 ## 5. 同位素追踪代码被注释的问题
 
@@ -170,15 +170,15 @@ et_s_step, runoff, rechstep, flux_step, qrfcorrect, updated_smoi =
 
 ## 6. 与 Fortran 对照
 
-| Fortran（`module_rootdepth.f90`） | Julia（`rootdepth_main`） | 差异 |
-|---|---|---|
-| `subroutine rootdepth(...)` 入口 | 同名泛型函数 | Julia 拆为 5 个 `include` 文件再 include |
-| `COMMON /VEGTYPE/`、`/SOILTYPE/` 等全局块 | 形参列表（40+ 变量） | Julia 显式传参，避免全局副作用 |
-| `REAL*8` 固定双精度 | `where T<:Real` | Float32 路径需自行验证 |
-| `INTEGER jwt` 作为入参 | 通过 `find_jwt(wtd, z₋ₕ)` 内部反算 | Julia 调用前需确保 `z₋ₕ` 已初始化 |
-| 内联调用 5+ 个子程序 | 内联调用 PET/截留/extraction/soilfluxes/updatewtd_shallow | 同结构，函数命名 snake_case |
-| 氧 18 计算主循环内联 | 同位素段注释掉 | 见 §5 |
-| `DO j = js+1, je-1` | `for j in (js+1):(je-1)` | 1-based，halo 边界同 |
+| Fortran（`module_rootdepth.f90`）         | Julia（`rootdepth_main`）                                 | 差异                                     |
+| ----------------------------------------- | --------------------------------------------------------- | ---------------------------------------- |
+| `subroutine rootdepth(...)` 入口          | 同名泛型函数                                              | Julia 拆为 5 个 `include` 文件再 include |
+| `COMMON /VEGTYPE/`、`/SOILTYPE/` 等全局块 | 形参列表（40+ 变量）                                      | Julia 显式传参，避免全局副作用           |
+| `REAL*8` 固定双精度                       | `where T<:Real`                                           | Float32 路径需自行验证                   |
+| `INTEGER jwt` 作为入参                    | 通过 `find_jwt(wtd, z₋ₕ)` 内部反算                        | Julia 调用前需确保 `z₋ₕ` 已初始化        |
+| 内联调用 5+ 个子程序                      | 内联调用 PET/截留/extraction/soilfluxes/updatewtd_shallow | 同结构，函数命名 snake_case              |
+| 氧 18 计算主循环内联                      | 同位素段注释掉                                            | 见 §5                                    |
+| `DO j = js+1, je-1`                       | `for j in (js+1):(je-1)`                                  | 1-based，halo 边界同                     |
 
 ## 7. 引用
 
@@ -198,8 +198,8 @@ et_s_step, runoff, rechstep, flux_step, qrfcorrect, updated_smoi =
 
 1. **`dθ` 预初始化**（L166）：commit `d8fdeb6` 已修复 `for k in nzg:-1:0` 块中 `dθ[k]` 在 `itime == 0` 时访问的 `UndefVarError`，保留作为安全网。
 2. **`rech` 双重累加**：浅层 WTD 返回的 `rech_additional * 1.0e3`（L215）与 `soilfluxes` 返回的 `rechstep * 1.0e3`（L200）相加；Fortran 中该累加来自不同子程序，调用方需核对合理性。
-3. **`length` 命名冲突**：`helper.jl` 与 `RootDepth.jl` 中均使用 `length(z₋ₕ)`，与 `Base.length` 同名，模块聚合（`modules/Modules.jl`）时需注意作用域。
-4. **`o18`/`θ_eq`/`tempsfc` 形参未消费**：自 §5 起，目前形参仅占位，调用方传 `similar(θ)` 占位即可。
+3. ✅ **`length` 命名冲突已修复**（2026-06-22 修复）：`src/modules/rivers_kw_flood.jl:18` 与 `src/modules/rivers_dw_flood.jl:13` 的形参均已重命名为 `river_length`；`helper.jl`/`RootDepth.jl` 中使用 `length(z₋ₕ)` 的局部绑定与 `Base.length` 同名但属函数体内局部作用域，未实际触发冲突。
+4. ⏸️ **`o18`/`θ_eq`/`tempsfc` 形参未消费**（按 §6.1 暂缓）：`src/SoilFluxes.jl:347-L351` ¹⁸O 三对角组装段被注释；恢复需用户明确重新授权并追加 `wiki/log.md` 的 `[YYYY-MM-DD] enable | 范围` 条目。
 5. **`steps = 1.0` 默认**：典型调用为 `steps = 1.0`，若调大需保证 `Δt/steps` 仍满足 CFL 与 `icefactor` 时间分辨率。
 6. **`icefactor` 维度**：`Array{Int8,3}` 的最后一维长度为 26-40（注释 L57 提示实际为 26:40 切片 15 个元素），主循环 L126 复制 `icefactor[i,j,26:40]` 到 `icefac`，调用方需保证该切片存在。
 7. **测试入口**：`test/test_rootdepth.jl` 应至少包含：① 单格点水分守恒（`sum(θ_new) ≈ sum(θ_old) + precip - et - runoff`）、② 数值精度切换（`Float32` 与 `Float64` 结果一致至 1e-4）、③ 同位素守恒断言（待 §5 修复后启用）。

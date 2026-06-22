@@ -1,5 +1,5 @@
-#import "@preview/cetz:0.4.1"
-#import "main_cetz.typ": *
+#import "@preview/cetz:0.5.2"
+#import "cetz.typ": *
 
 #show "{": ""
 #show "}": ""
