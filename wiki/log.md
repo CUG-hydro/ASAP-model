@@ -111,3 +111,20 @@
 - **源代码一致性**：抽样核对 5 个核心模块（`ASAP.jl`、`RootDepth.jl`、`SoilParameters.jl`、`Evapotranspiration.jl`、`Modules.jl`）的描述与现行源码一致；`dθ` 预初始化（commit `d8fdeb6`）、`Modules.jl` 悬空 export（`wtable!`/`updatewtd!` 位于 `backup/`）等条目已在 §7/§8 详述，未发现需更正的事实错误。
 - **TODO 占位扫描**：grep `TODO|TBD|占位|待写` 后未发现空章节；所有 `## 7. 已知问题与备注` 均为实质性描述（最短 5 行，最长 8 行）。
 - **仍存在但非本次范围**：`_meta/status.md` §5 列出的 10 类悬空 export / 占位实现 / 拼写错误属代码层问题，不通过 lint 修复，留待后续 PR。
+## [2026-06-22] update | 区域应用串联 + Forcings 重构
+
+按 TASK.md 推进到「区域应用」里程碑。
+
+- **Forcings 测试可跑**：`src/Forcings/ERA5.jl` 加 `xrange/yrange/global_nx` 注入参数；test 改 30×30 mock。`Project.toml` test 目标补 `Random/Dates/Printf`。
+- **示例端到端 + 多日**：`example/regional_example.jl` 加 `era5_paths_for` + 日期感知时步循环 (`--duration>24` 跨日)。
+- **Forcings 重构**：引入 `Grid` 类型 (`origin/res/shape`)；5 份双线性插值收敛到 `bilinear(src, src_grid, lats, lons)`；`read_snow` 改为 `read_snow_hour(date,1,…)` alias；`read_lai_climatology` 6 形参收为 `target_shape::Tuple`；新增 `ERA5_GRID` / `ERA5LAND_GRID` 常量。794 → 360 行。生产行为不变，6 个 testset 无需改签名。
+- **测试 polish**：`test/test_regional_example.jl` `generate_mock_dataset` 加类型断言；smoke test 接 `--out` 并断言输出文件存在；`parse_cli_args` 修 `parse(String,…)` bug（`String` 不需要 parse）。
+- **README**：新增「区域应用：数据准备清单」7 小节。
+- **验证**：`Pkg.test()` 全套通过；`--mock 1 --duration 50` 跨日 20200101→20200102→20200103。
+
+## [2026-06-22] update | 合理 mock 数据
+
+- `example/regional_example.jl::generate_mock_dataset` 重写：soiltxt 横向 1..13 梯度、topo 山脊 0..500 m、wtd 与 topo 负相关、t2m 日正弦 + 海陆 ±2 K、ssrd 仅昼间、tp 间歇性 (10% rainy hours)、sp 压高公式、stl1..4 深−滞后、LAI 月度正弦（冬 0.5 夏 4.0）。
+- 修 3 个小 bug：comprehension 重写（替代错误 broadcast）、wind clamp 1..6 m/s、tp 单位修 mm/h。
+- `test/test_regional_example.jl` 「static 往返」与「wtd 符号约定」改范围断言（不再断言具体常数）。
+- 验证：`--mock 1 --duration 168` 7 天跨日跑通；`Pkg.test()` 全套绿。

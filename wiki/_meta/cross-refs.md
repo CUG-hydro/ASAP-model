@@ -59,11 +59,13 @@
 | 26 | `gw2river-地下水河流交换.md` §4 | `qrf` 单位 m | [`conventions.md` §2](../conventions.md) |
 | 27 | `RootDepth-主算法.md` §4 | `θ/θ_eq/θ_wtd/wtd/flux/infilflux` 单位 m³/m³, m, mm | [`conventions.md` §2](../conventions.md) |
 | 28 | `IsotopeTracing-同位素追踪.md` §4 | `o18/o18wtd` 单位 ‰ | [`conventions.md` §2](../conventions.md) |
+| 29 | `Forcings-ERA5.md` §3 | `read_initial` / `read_wtdnc` 静态场 + 初始水位读取 | [`io-NetCDF.md`](../julia/io-NetCDF.md) §2、§3 |
+| 30 | `Forcings-ERA5.md` §6 | ERA5 路径约定（变量分目录、每日一文件） | [`README.md` §区域应用：数据准备清单](../../README.md#区域应用数据准备清单) |
 
 ## 引用统计
 
-- **总计登记**：28 条
-- **覆盖页面**：14 个 Julia 页面 + `_meta/status.md` + `_meta/cross-refs.md` + `conventions.md` + `index.md` + `log.md` + `README.md`
-- **主要链路**：① RootDepth 主循环 → 5 个子模块（条目 1-6）；② 公式参数共享（条目 7-10）；③ Modules.jl 聚合（条目 11-16）；④ 河流链（条目 17-21）；⑤ 同位素链（条目 22-24）；⑥ 单位命名引用（条目 25-28）。
+- **总计登记**：30 条
+- **覆盖页面**：15 个 Julia 页面 + `_meta/status.md` + `_meta/cross-refs.md` + `conventions.md` + `index.md` + `log.md` + `README.md`
+- **主要链路**：① RootDepth 主循环 → 5 个子模块（条目 1-6）；② 公式参数共享（条目 7-10）；③ Modules.jl 聚合（条目 11-16）；④ 河流链（条目 17-21）；⑤ 同位素链（条目 22-24）；⑥ 单位命名引用（条目 25-28）；⑦ ERA5 强迫 + 数据准备（条目 29-30）。
 
 如发现新增跨页面引用，请按上述格式追加本表，并更新最后一节统计。

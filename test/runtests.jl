@@ -13,5 +13,7 @@ include("test_updatewtd_shallow.jl")
 include("test_rootdepth.jl")
 
 include("test_io_netcdf.jl")
+include("test_forcings_era5.jl")
+include("test_regional_example.jl")
 
 include("wtable/runtests.jl")

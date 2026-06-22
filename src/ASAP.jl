@@ -33,4 +33,11 @@ include("io/NetCDF.jl")
 using .NetCDFIO: read_initial, read_wtdnc
 export read_initial, read_wtdnc
 
+# ERA5 forcing readers (read-only subset of fortran/module_forcings.f90)
+include("Forcings/ERA5.jl")
+using .ERA5Forcings
+export read_hourly_forcings, read_accumulated_forcings,
+       read_snow, read_snow_hour, read_soil_temps,
+       read_topo_era5, read_lai_climatology, compute_qair
+
 end # module ASAP

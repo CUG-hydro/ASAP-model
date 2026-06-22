@@ -91,11 +91,11 @@ julia
 
 ## 4. 关键变量与单位
 | 符号 | 含义 | 单位 |
-|---|---|---|
+| ---- | ---- | ---- |
 
 ## 5. 与 Fortran 对应
 | Fortran 子程序 | Julia 函数 | 差异 |
-|---|---|---|
+| -------------- | ---------- | ---- |
 
 ## 6. 引用
 - 行号：`src/{file}.jl:L10-L25` …
@@ -163,14 +163,14 @@ julia
 
 ### 5.1 命名约定
 
-| 符号 | 含义 |
-|---|---|
-| `θ` / `theta` | 体积含水量 |
-| `ψ` / `psi` | 基质势（m） |
-| `κ` / `kappa` | 导水率 |
-| `ρ` / `rho` | 密度相关参数 |
-| `Δt` | 时间步长 |
-| `α` / `β` / `γ` / `δ` / `λ` | 其他参数 |
+| 符号                        | 含义         |
+| --------------------------- | ------------ |
+| `θ` / `theta`               | 体积含水量   |
+| `ψ` / `psi`                 | 基质势（m）  |
+| `κ` / `kappa`               | 导水率       |
+| `ρ` / `rho`                 | 密度相关参数 |
+| `Δt`                        | 时间步长     |
+| `α` / `β` / `γ` / `δ` / `λ` | 其他参数     |
 
 ### 5.2 单位约定
 
@@ -191,6 +191,7 @@ julia
 - ❌ **修改 `fortran/` 目录**（参考用）
 - ❌ **修改 `docs/*.typ` 文档**（学术写作风格规范）
 - ❌ **不修改 `Project.toml` 依赖版本约束**（`compat` 段）
+- ❌ 不删除有意义的注释或有意义的注释掉的代码（等未来可恢复的代码，或有意义的注释）
 
 ### 6.1 现阶段不实现的范围（2026-06-22 起生效）
 
@@ -208,18 +209,18 @@ julia
 
 10 个问题已识别并修复（参见 commit 摘要）；剩余清理项见 `wiki/_meta/status.md` §5：
 
-| # | 问题 | 状态 | 修复位置 |
-|---|---|---|---|
-| 1 | `SoilParameters.init_soil_param.fieldcp` 占位 0 | ✅ 已修复 | `src/SoilParameters.jl:73-L78` |
-| 2 | `SoilFluxes.jl` 氧 18 注释段 + docstring 不一致 | ✅ 已清理 | `src/SoilFluxes.jl`、`src/RootDepth.jl` |
-| 3 | `Modules.jl` 悬空 export `wtable!`/`updatewtd!` | ✅ 已删除 | `src/modules/Modules.jl` |
-| 4 | `ASAP.jl` 悬空 export `updatewtd_qlat` | ✅ 已删除 | `src/ASAP.jl` |
-| 5 | `extraction.kroot = k - 1` 注释误导 | ✅ 已澄清 | `src/extraction.jl` |
-| 6 | `updatewtd_shallow.flag` 未初始化隐患 | ✅ 注释加固 | `src/updatewtd_shallow.jl` |
-| 7 | `Interception.minpprate` docstring 错误 | ✅ 已修正 | `src/Interception.jl` |
-| 8 | `potevap_shutteworth_wallace` 拼写错误 | ✅ 新增别名 | `src/Evapotranspiration.jl` |
-| 9 | `SoilInitialization.DataFrames` 悬空 import | ✅ 已删除 | `src/SoilInitialization.jl`、`Project.toml` |
-| 10 | `rivers_*` 中形参 `length` 与 `Base.length` 同名 | ✅ 已重命名 | `rivers_kw_flood.jl`、`rivers_dw_flood.jl` |
+| #   | 问题                                             | 状态       | 修复位置                                    |
+| --- | ------------------------------------------------ | ---------- | ------------------------------------------- |
+| 1   | `SoilParameters.init_soil_param.fieldcp` 占位 0  | ✅ 已修复   | `src/SoilParameters.jl:73-L78`              |
+| 2   | `SoilFluxes.jl` 氧 18 注释段 + docstring 不一致  | ✅ 已清理   | `src/SoilFluxes.jl`、`src/RootDepth.jl`     |
+| 3   | `Modules.jl` 悬空 export `wtable!`/`updatewtd!`  | ✅ 已删除   | `src/modules/Modules.jl`                    |
+| 4   | `ASAP.jl` 悬空 export `updatewtd_qlat`           | ✅ 已删除   | `src/ASAP.jl`                               |
+| 5   | `extraction.kroot = k - 1` 注释误导              | ✅ 已澄清   | `src/extraction.jl`                         |
+| 6   | `updatewtd_shallow.flag` 未初始化隐患            | ✅ 注释加固 | `src/updatewtd_shallow.jl`                  |
+| 7   | `Interception.minpprate` docstring 错误          | ✅ 已修正   | `src/Interception.jl`                       |
+| 8   | `potevap_shutteworth_wallace` 拼写错误           | ✅ 新增别名 | `src/Evapotranspiration.jl`                 |
+| 9   | `SoilInitialization.DataFrames` 悬空 import      | ✅ 已删除   | `src/SoilInitialization.jl`、`Project.toml` |
+| 10  | `rivers_*` 中形参 `length` 与 `Base.length` 同名 | ✅ 已重命名 | `rivers_kw_flood.jl`、`rivers_dw_flood.jl`  |
 
 ---
 
@@ -240,20 +241,20 @@ julia --project example/complete_example.jl
 
 ## 9. 跨语言映射速查
 
-| Julia 函数 | Fortran 子程序 | 差异 |
-|---|---|---|
-| `rootdepth_main` | `ROOTDEPTH` | 接口对齐；新增泛型签名 |
-| `potevap_shutteworth_wallace` | `POTEVAP_Shutteworth_Wallace` | 拼写相同；Julia 返回元组 |
-| `soilfluxes` | `SOILFLUXES` | 同位素段 Julia 已禁用（**现阶段不串联**，见 §6.1） |
-| `extraction` | `EXTRACTION` | 1-based 一致 |
-| `interception` | `INTERCEPTION` | 接口一致 |
-| `lateral_flow!` | `LATERALFLOW4` | 8 邻居（D8） |
-| `gw2river!` | `GW2RIVER` | 三种河床交换 |
-| `rivers_kw_flood!` | `RIVERS_KW_FLOOD` | 形参 `length`→`river_length` |
-| `rivers_dw_flood!` | `RIVERS_DW_FLOOD` | 形参 `length`→`river_length` |
-| `flooding!` | `FLOODING` | 8 邻居漫流 |
-| `updatewtd_shallow` | `UPDATESHALLOWWTD` | Julia 简化（去除 qlat） |
-| `find_jwt` | 无对应 | Julia 工具 |
+| Julia 函数                    | Fortran 子程序                | 差异                                               |
+| ----------------------------- | ----------------------------- | -------------------------------------------------- |
+| `rootdepth_main`              | `ROOTDEPTH`                   | 接口对齐；新增泛型签名                             |
+| `potevap_shutteworth_wallace` | `POTEVAP_Shutteworth_Wallace` | 拼写相同；Julia 返回元组                           |
+| `soilfluxes`                  | `SOILFLUXES`                  | 同位素段 Julia 已禁用（**现阶段不串联**，见 §6.1） |
+| `extraction`                  | `EXTRACTION`                  | 1-based 一致                                       |
+| `interception`                | `INTERCEPTION`                | 接口一致                                           |
+| `lateral_flow!`               | `LATERALFLOW4`                | 8 邻居（D8）                                       |
+| `gw2river!`                   | `GW2RIVER`                    | 三种河床交换                                       |
+| `rivers_kw_flood!`            | `RIVERS_KW_FLOOD`             | 形参 `length`→`river_length`                       |
+| `rivers_dw_flood!`            | `RIVERS_DW_FLOOD`             | 形参 `length`→`river_length`                       |
+| `flooding!`                   | `FLOODING`                    | 8 邻居漫流                                         |
+| `updatewtd_shallow`           | `UPDATESHALLOWWTD`            | Julia 简化（去除 qlat）                            |
+| `find_jwt`                    | 无对应                        | Julia 工具                                         |
 
 完整对照表见 `wiki/mapping/julia-fortran-对照.md`。
 

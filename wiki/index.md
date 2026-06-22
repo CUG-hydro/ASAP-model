@@ -40,6 +40,11 @@
 
 - [modules-水位模块聚合](./julia/modules-水位模块聚合.md) — `src/modules/Modules.jl` 的 include 序列与 export 表（含悬空 export 注释）
 
+## 数据准备与强迫子系统
+
+- [Forcings-ERA5](./julia/Forcings-ERA5.md) — `src/Forcings/ERA5.jl::ERA5Forcings`（`Grid` struct + `bilinear` 统一插值；8 类 ERA5 变量 + LAI 气候态 + 雪水当量）；对应 `fortran/module_forcings.f90` P1-A 子集
+- [README § 区域应用：数据准备清单](../README.md#区域应用数据准备清单) — `static.nc` / `wtd.nc` / ERA5 / LAI 文件约定与运行命令
+
 ## Fortran 原版
 
 - [README](./fortran/README.md) — Fortran 源目录总览

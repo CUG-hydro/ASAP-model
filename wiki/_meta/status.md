@@ -1,6 +1,6 @@
 # 摄取状态表
 
-> 截至 2026-06-21 全部已建 wiki 页面的状态登记。
+> 截至 2026-06-22 全部已建 wiki 页面的状态登记。
 > 状态枚举：**已摄取** / **已摄取（含悬空 export 备注）** / **待复核** / **未建（待补）**。
 
 ## 1. 顶层结构（阶段 A 新建）
@@ -35,6 +35,7 @@
 | `julia/IsotopeTracing-同位素追踪.md` | `src/modules/Tracing/IsotopeTracing.jl` | 已摄取 | 4 方向不含对角线；`*sum` 数组持续累加 |
 | `julia/modules-水位模块聚合.md` | `src/modules/Modules.jl` | 已摄取（含悬空 export 备注） | `wtable!`/`updatewtd!` 悬空 export（实现位于 `backup/`）；`helper.jl` 注释掉 |
 | `julia/io-NetCDF.md` | `src/io/NetCDF.jl` | 已摄取（仅 P0 子集） | 仅实现 `read_initial` / `read_wtdnc`；P1/P2 子程序（`READLATLON`/`READVEG`/`READHISTORYNC`/全部写出）未实现 |
+| `julia/Forcings-ERA5.md` | `src/Forcings/ERA5.jl` | 已摄取（含 Grid 重构备注） | 5 份插值收敛到 `bilinear`；`read_snow` 是 alias；6 形参 LAI 收为 1 Tuple |
 
 ## 3. Fortran 原版页面
 
@@ -74,3 +75,9 @@
 | 低 | `Evapotranspiration` 拼写错误 `shutteworth` | `Evapotranspiration-蒸散发.md` §7 | 保留以避免破坏下游，文档标注 |
 | 低 | `SoilInitialization.DataFrames` 悬空 import | `SoilInitialization-土壤分层.md` §7 | 删除 `using DataFrames` |
 | 低 | `rivers_*` 中 `length` 与 `Base.length` 同名 | `rivers_kw_flood`/`rivers_dw_flood`/`gw2river` | 重命名为 `rivlen` 或类似 |
+
+## 6. 子系统状态（examples）
+
+| 路径 | 状态 | 备注 |
+|---|---|---|
+| `example/regional_example.jl` | 已摄取（mock+真实两模式+多日） | 区域端到端驱动；mock 模式自给自足，真实模式按滚动日期重建 ERA5 路径 |
