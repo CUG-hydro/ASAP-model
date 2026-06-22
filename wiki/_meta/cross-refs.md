@@ -62,10 +62,20 @@
 | 29 | `Forcings-ERA5.md` §3 | `read_initial` / `read_wtdnc` 静态场 + 初始水位读取 | [`io-NetCDF.md`](../julia/io-NetCDF.md) §2、§3 |
 | 30 | `Forcings-ERA5.md` §6 | ERA5 路径约定（变量分目录、每日一文件） | [`README.md` §区域应用：数据准备清单](../../README.md#区域应用数据准备清单) |
 
+| # | 源页面 | 源符号 / 调用点 | 目标符号 | 目标页面 |
+|---|---|---|---|---|
+| 31 | `example-regional.md` §3.5 | `eqsoilmoisturetheor(nzg, nsoil, z₋ₕ, dz, fdepth, wtd)`（2-D 循环） | 平衡含水量逐层 `zbrent` 求根 | [`SoilInitialization-土壤分层.md`](../julia/SoilInitialization-土壤分层.md) §3 |
+| 32 | `example-regional.md` §3.6 | `rootdepth_main(...)` 47 形参对齐 | 主算法泛型签名 + 6 步主循环 | [`RootDepth-主算法.md`](../julia/RootDepth-主算法.md) §1、§2 |
+| 33 | `example-regional.md` §5 | `read_initial(paths.static)` / `read_wtdnc(paths.wtd)` | NetCDF 读取 + 符号约定 | [`io-NetCDF.md`](../julia/io-NetCDF.md) §2、§3 |
+| 34 | `example-regional.md` §3.4 | `era5_paths_for(era5_root, date)` 多日滚动 + `read_mock_hourly_forcings` | 与 `read_hourly_forcings` 的 4 点差异 | [`Forcings-ERA5.md`](../julia/Forcings-ERA5.md) §2、§7 |
+| 35 | `example-regional.md` §7 #2 | `icefactor .= 0` 简化路径 | 真实冻结因子 `read_soil_temps` 4 层 STL 映射 | [`Forcings-ERA5.md`](../julia/Forcings-ERA5.md) §3.7 |
+| 36 | `example-regional.md` §6（测试引用） | `test/test_regional_example.jl` 4 个 testset（端到端 / 静态场往返 / wtd 符号 / 类型断言） | `Pkg.test()` 入口与断言粒度 | [`CLAUDE.md` §8](../../CLAUDE.md) |
+| 37 | `example-regional.md` §1（数据准备） | `static.nc` / `wtd.nc` / ERA5 / LAI 文件约定 | README 数据准备清单 | [`README.md` §区域应用：数据准备清单](../../README.md#区域应用数据准备清单) |
+
 ## 引用统计
 
-- **总计登记**：30 条
-- **覆盖页面**：15 个 Julia 页面 + `_meta/status.md` + `_meta/cross-refs.md` + `conventions.md` + `index.md` + `log.md` + `README.md`
-- **主要链路**：① RootDepth 主循环 → 5 个子模块（条目 1-6）；② 公式参数共享（条目 7-10）；③ Modules.jl 聚合（条目 11-16）；④ 河流链（条目 17-21）；⑤ 同位素链（条目 22-24）；⑥ 单位命名引用（条目 25-28）；⑦ ERA5 强迫 + 数据准备（条目 29-30）。
+- **总计登记**：37 条
+- **覆盖页面**：16 个 Julia 页面（新增 `example-regional.md`）+ `_meta/status.md` + `_meta/cross-refs.md` + `conventions.md` + `index.md` + `log.md` + `README.md` + `CLAUDE.md`
+- **主要链路**：① RootDepth 主循环 → 5 个子模块（条目 1-6）；② 公式参数共享（条目 7-10）；③ Modules.jl 聚合（条目 11-16）；④ 河流链（条目 17-21）；⑤ 同位素链（条目 22-24）；⑥ 单位命名引用（条目 25-28）；⑦ ERA5 强迫 + 数据准备（条目 29-30）；⑧ Regional 区域应用串联 7 条新引用（条目 31-37），覆盖 `eqsoilmoisturetheor` / `rootdepth_main` / `read_initial`+`read_wtdnc` / `read_mock_hourly_forcings` 差异 / `icefactor` 简化 / 测试入口 / 数据准备清单。
 
 如发现新增跨页面引用，请按上述格式追加本表，并更新最后一节统计。

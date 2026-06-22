@@ -37,7 +37,10 @@ wiki/
 │   ├── rivers_dw_flood-扩散波路由.md
 │   ├── flooding-洪泛漫流.md
 │   ├── IsotopeTracing-同位素追踪.md
-│   └── modules-水位模块聚合.md
+│   ├── io-NetCDF.md
+│   ├── Forcings-ERA5.md
+│   ├── modules-水位模块聚合.md
+│   └── example-regional.md             # example/regional_example.jl 端到端脚本
 ├── fortran/                           # Fortran 原版 8 个模块
 └── mapping/                           # 跨语言对照表
 ```
@@ -46,6 +49,7 @@ wiki/
 
 - **新读者**：先读 [`index.md`](./index.md) 与 [`conventions.md`](./conventions.md)，再按需深入子系统页面。
 - **核心算法入口**：[`julia/RootDepth-主算法.md`](./julia/RootDepth-主算法.md) 描述 `rootdepth_main` 泛型主循环。
+- **区域端到端示例**：[`julia/example-regional.md`](./julia/example-regional.md) 描述 `example/regional_example.jl` 的 6 步主流程、mock 数据集合成、ERA5 多日滚动与最终输出。
 - **移植对照**：[`fortran/`](./fortran/) 子目录对应 8 个原始 Fortran 模块；`mapping/` 提供 Fortran→Julia 行级映射。
 - **缺陷追踪**：[`_meta/status.md`](./_meta/status.md) 列出每个页面的"已摄取 / 待复核"状态及悬空 import、悬空 export 等遗留问题。
 - **跨页引用**：[`_meta/cross-refs.md`](./_meta/cross-refs.md) 记录至少 10 条符号级别的跨页面引用，便于追溯公式与变量在多个模块间的传播。
@@ -53,6 +57,7 @@ wiki/
 ## 当前覆盖范围
 
 - 17 个 Julia 源文件（`src/*.jl` + `src/modules/*.jl` + `src/modules/Tracing/*.jl`）
+- 1 个区域应用示例（`example/regional_example.jl`，含 mock / 真实两模式 + 多日滚动）
 - 11 个 Fortran 源文件（`fortran/*.f90`）
 - 阶段 A 顶层结构 8 个文件（README / index / log / conventions / ASAP-主入口 / RootDepth-主算法 / status / cross-refs）
 

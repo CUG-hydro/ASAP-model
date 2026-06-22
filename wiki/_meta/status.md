@@ -84,3 +84,4 @@
 | 路径 | 状态 | 备注 |
 |---|---|---|
 | `example/regional_example.jl` | 已摄取（mock+真实两模式+多日） | 区域端到端驱动；mock 模式自给自足，真实模式按滚动日期重建 ERA5 路径 |
+| `julia/example-regional.md` | 已摄取（含 stub 与项目模块差异备注） | 对应 `example/regional_example.jl` 的 7 段模板页面；§7 #1 列出 `read_mock_hourly_forcings` 与 `src/Forcings/ERA5.jl::read_hourly_forcings` 4 点差异，§7 #2-#10 记录 `icefactor .= 0` 简化、`netrad` 粗略近似、输出 NetCDF 仅 6 字段等遗留问题 |

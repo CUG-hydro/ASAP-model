@@ -43,6 +43,7 @@
 ## 数据准备与强迫子系统
 
 - [Forcings-ERA5](./julia/Forcings-ERA5.md) — `src/Forcings/ERA5.jl::ERA5Forcings`（`Grid` struct + `bilinear` 统一插值；8 类 ERA5 变量 + LAI 气候态 + 雪水当量）；对应 `fortran/module_forcings.f90` P1-A 子集
+- [Regional 区域应用示例](./julia/example-regional.md) — `example/regional_example.jl` 端到端驱动脚本：mock / 真实两模式 + 多日滚动；6 步主流程（`read_initial` → `read_wtdnc` → `eqsoilmoisturetheor` → 时步 `rootdepth_main`）+ 5 节 mock 合成公式（地形 / 气温 / 辐射 / 土壤温度 / LAI）
 - [README § 区域应用：数据准备清单](../README.md#区域应用数据准备清单) — `static.nc` / `wtd.nc` / ERA5 / LAI 文件约定与运行命令
 
 ## Fortran 原版

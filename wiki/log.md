@@ -2,6 +2,24 @@
 
 > 本文件记录 Wiki 的摄取、复核与重大变更，按日期倒序排列。
 
+## [2026-06-22] update | 以 example/regional_example.jl 为主线补全 wiki
+
+- **触发**：用户要求"以 `example/regional_example.jl` 为主线，更新 wiki"。
+- **新增页面**：
+  - `wiki/julia/example-regional.md` — 按 `conventions.md` §3 七段模板撰写：`parse_cli_args` / `generate_mock_dataset` / `read_mock_hourly_forcings` / `era5_paths_for` / `main` 5 个函数签名；6 步主流程（参数解析 → 数据准备 → 静态场初始化 → 状态变量 → 时步循环 → 输出）；5 节 mock 合成公式（地形 / 气温 / 辐射 / 土壤温度 / LAI）+ Tetens 比湿 + 压高公式 + 净辐射近似；与 Fortran `main.f90` / `module_io.f90` / `module_forcings.f90` / `module_initial.f90` / `module_rootdepth.f90` 逐项对照；§7 列出 10 项遗留问题（mock stub 与项目 `read_hourly_forcings` 4 点差异、`icefactor .= 0` 简化、`netrad` 粗略近似、输出 NetCDF 仅 6 字段、CLI 字符串字段、docstring 转义等）。
+- **更新导航**：
+  - `wiki/index.md`「数据准备与强迫子系统」分类新增 `Regional 区域应用示例` 条目；简介涵盖 mock / 真实两模式 + 多日滚动 + 6 步主流程。
+  - `wiki/README.md` 目录树在 `julia/` 子目录末尾追加 `example-regional.md`；快速导航新增"区域端到端示例"小节；"当前覆盖范围"补 1 个区域应用示例计数。
+- **更新状态**：
+  - `wiki/_meta/status.md` §6 新增第二行 `julia/example-regional.md | 已摄取（含 stub 与项目模块差异备注）`，指向 §7 #1-#10 遗留问题。
+- **更新跨页引用**：
+  - `wiki/_meta/cross-refs.md` 追加 7 条新引用（条目 31-37），覆盖 `eqsoilmoisturetheor` / `rootdepth_main` / `read_initial`+`read_wtdnc` / `read_mock_hourly_forcings` 差异 / `icefactor` 简化 / 测试入口 / 数据准备清单；引用统计由 30 条升至 37 条，覆盖页面由 15 个 Julia 页面升至 16 个。
+- **未变更**：
+  - `src/backup/` 按 §6 仍禁用。
+  - 同位素追踪（`SoilFluxes.jl:347-L351`）按 §6.1 维持注释禁用。
+  - `example/regional_example.jl` 源码未修改（仅 wiki 页面新增 + 导航/状态/跨引更新）。
+- **验证**：本地语法 / 表格结构未跑自动测试；下一步由用户在 `julia --project -e 'using Pkg; Pkg.test()'` 全套绿后确认本次 wiki 更新不引入回归。
+
 ## [2026-06-22] lint | codebase update — Wiki 与源码 §5/§7 对齐 + 知识图谱索引
 
 - **触发**：用户要求"codebase update"。本次为 D1 lint 的延续：核对 `CLAUDE.md §7` 与 `wiki/_meta/status.md §5` 的不一致。
